@@ -1,0 +1,405 @@
+<title>测试契约流水线</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ground: #eef0ea;
+    --ground-2: #e4e8df;
+    --ink: #1e221d;
+    --ink-soft: #52584f;
+    --ink-faint: #7e8578;
+    --line: #cfd6c8;
+    --accent-e2e: #b3432a;     /* red-oxide — 端到端（空白） */
+    --accent-intg: #8a6d2f;    /* amber — 集成（部分） */
+    --accent-api: #2f5e4e;     /* green — 接口（强） */
+    --accent-unit: #3d5a82;    /* slate — 单元（强） */
+    --accent-gate: #2f5e4e;    /* green — CI 守门 */
+    --card: #fafbf7;
+    --card-ink: #262a24;
+    --code-bg: #eef0e8;
+    --shadow: 0 1px 2px rgba(30,34,29,.06), 0 6px 20px -12px rgba(30,34,29,.25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #151713;
+      --ground-2: #1c1e19;
+      --ink: #eceee6;
+      --ink-soft: #b1b8a9;
+      --ink-faint: #767d6f;
+      --line: #34372f;
+      --accent-e2e: #e07a58;
+      --accent-intg: #c9a855;
+      --accent-api: #63b395;
+      --accent-unit: #7d9cc8;
+      --accent-gate: #63b395;
+      --card: #1e211b;
+      --card-ink: #efefe8;
+      --code-bg: #262921;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #151713;
+    --ground-2: #1c1e19;
+    --ink: #eceee6;
+    --ink-soft: #b1b8a9;
+    --ink-faint: #767d6f;
+    --line: #34372f;
+    --accent-e2e: #e07a58;
+    --accent-intg: #c9a855;
+    --accent-api: #63b395;
+    --accent-unit: #7d9cc8;
+    --accent-gate: #63b395;
+    --card: #1e211b;
+    --card-ink: #efefe8;
+    --code-bg: #262921;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 28px 96px; }
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .82em;
+  }
+  .mono { font-size: .78em; }
+
+  header { padding: 56px 0 8px; border-bottom: 1px solid var(--line); }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 560;
+    font-size: clamp(2.1rem, 5vw, 3.3rem);
+    line-height: 1.05; letter-spacing: -.01em;
+    margin: 0 0 18px; text-wrap: balance;
+  }
+  .lede { max-width: 66ch; font-size: 1.12rem; color: var(--ink-soft); margin: 0 0 26px; }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px 22px;
+    font-family: "IBM Plex Mono", monospace; font-size: .76rem;
+    color: var(--ink-faint); margin-bottom: 26px;
+  }
+  .meta-row b { color: var(--ink-soft); font-weight: 600; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px 24px;
+    padding: 16px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--ink-soft); }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+  .swatch.e2e  { background: var(--accent-e2e); }
+  .swatch.intg { background: var(--accent-intg); }
+  .swatch.api  { background: var(--accent-api); }
+  .swatch.unit { background: var(--accent-unit); }
+  .swatch.gate { background: var(--accent-gate); }
+
+  /* ── pyramid ─────────────────────────────── */
+  .pyramid { margin-top: 44px; }
+  .stage { position: relative; margin-bottom: 16px; }
+  .flow { position: relative; padding-left: 30px; }
+  .flow::before {
+    content: ""; position: absolute; left: 10px; top: 8px; bottom: -16px;
+    width: 2px; background: var(--line);
+  }
+  .stage:last-child .flow::before { display: none; }
+  .node-dot {
+    position: absolute; left: 0; top: 8px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--card); border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "IBM Plex Mono", monospace; font-size: .66rem;
+    color: var(--ink-faint); z-index: 1;
+  }
+  .stage[data-accent="e2e"] .node-dot  { border-color: var(--accent-e2e); color: var(--accent-e2e); }
+  .stage[data-accent="intg"] .node-dot { border-color: var(--accent-intg); color: var(--accent-intg); }
+  .stage[data-accent="api"] .node-dot  { border-color: var(--accent-api); color: var(--accent-api); }
+  .stage[data-accent="unit"] .node-dot  { border-color: var(--accent-unit); color: var(--accent-unit); }
+  .stage[data-accent="gate"] .node-dot  { border-color: var(--accent-gate); color: var(--accent-gate); }
+
+  .card {
+    background: var(--card); color: var(--card-ink);
+    border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 22px 24px;
+  }
+  .stage-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+  .stage-num { font-family: "Fraunces", Georgia, serif; font-size: .86rem; font-weight: 600; color: var(--ink-faint); }
+  .stage-title { font-family: "Fraunces", Georgia, serif; font-size: 1.4rem; font-weight: 560; margin: 0; text-wrap: balance; }
+  .stage-role {
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint); margin-left: auto;
+  }
+  .stage-desc { color: var(--ink-soft); font-size: .98rem; margin: 6px 0 16px; max-width: 66ch; }
+  .path {
+    display: block; background: var(--code-bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 12px; font-size: .74rem; color: var(--ink-soft);
+    overflow-x: auto; white-space: nowrap; margin-bottom: 14px;
+  }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+  .col { background: var(--ground); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .col-label {
+    font-family: "IBM Plex Mono", monospace; font-size: .68rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 8px;
+  }
+  .col ul { margin: 0; padding-left: 18px; }
+  .col li { font-size: .9rem; color: var(--ink-soft); margin: 3px 0; }
+  .col li b { color: var(--ink); font-weight: 600; }
+
+  .pill {
+    display: inline-block; font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .06em; padding: 3px 9px;
+    border-radius: 20px; border: 1px solid var(--line); color: var(--ink-soft);
+    margin: 0 4px 4px 0;
+  }
+  .pill.e2e  { border-color: var(--accent-e2e); color: var(--accent-e2e); }
+  .pill.intg { border-color: var(--accent-intg); color: var(--accent-intg); }
+  .pill.api  { border-color: var(--accent-api); color: var(--accent-api); }
+  .pill.unit { border-color: var(--accent-unit); color: var(--accent-unit); }
+  .pill.gate { border-color: var(--accent-gate); color: var(--accent-gate); }
+
+  .note {
+    margin-top: 16px; padding: 12px 16px;
+    border-left: 3px solid var(--accent-e2e);
+    background: var(--ground); border-radius: 0 8px 8px 0;
+    font-size: .9rem; color: var(--ink-soft);
+  }
+  .note b { color: var(--ink); }
+
+  .rev-loop {
+    margin-top: 26px; padding: 18px 20px;
+    border: 1px dashed var(--accent-e2e); border-radius: 10px;
+    background: var(--ground);
+  }
+  .rev-loop .t {
+    font-family: "IBM Plex Mono", monospace; font-size: .7rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent-e2e); margin: 0 0 8px;
+  }
+  .rev-loop p { margin: 0; color: var(--ink-soft); font-size: .92rem; }
+  .rev-loop p b { color: var(--ink); }
+
+  .verdict {
+    margin-top: 56px; border: 1px solid var(--line); border-radius: 12px;
+    padding: 28px 30px; background: var(--ground-2);
+  }
+  .verdict h2 { font-family: "Fraunces", Georgia, serif; font-size: 1.5rem; font-weight: 560; margin: 0 0 12px; text-wrap: balance; }
+  .verdict p { color: var(--ink-soft); margin: 0 0 10px; max-width: 72ch; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict em { color: var(--accent-e2e); font-style: normal; font-weight: 600; }
+</style>
+
+<header class="wrap">
+  <p class="kicker">生产级全栈工程 · Harness Engineering · 测试契约层</p>
+  <h1>测试不是事后补，是契约的一部分</h1>
+  <p class="lede">单元 / 接口 / 集成测试 AI 好做；端到端 TDD 是挑战 —— AI 写用例 = 写代码。仓库实测：下三层密集成熟（34 个契约测试坐实），端到端零覆盖（从未存在）。</p>
+  <div class="meta-row">
+    <span><b>取证基线</b> template · 只读取证</span>
+    <span><b>样本</b> 204 *.test.ts · 34 契约 · INT-proof · ci.yml</span>
+    <span><b>日期</b> 2026-08-29</span>
+    <span><b>只读</b> 未改文件 · 未触发生产</span>
+  </div>
+  <div class="legend">
+    <span class="legend-item"><span class="swatch e2e"></span>端到端 · 空白</span>
+    <span class="legend-item"><span class="swatch intg"></span>集成 · 部分</span>
+    <span class="legend-item"><span class="swatch api"></span>接口 · 强</span>
+    <span class="legend-item"><span class="swatch unit"></span>单元 · 强</span>
+    <span class="legend-item"><span class="swatch gate"></span>CI 守门</span>
+  </div>
+</header>
+
+<main class="wrap pyramid">
+
+  <!-- STAGE 1: E2E -->
+  <section class="stage" data-accent="e2e">
+    <div class="flow">
+      <span class="node-dot">1</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">金字塔顶层</span>
+          <h2 class="stage-title">端到端测试 🔴 空白</h2>
+          <span class="stage-role">AI 挑战 · 需要打磨</span>
+        </div>
+        <p class="stage-desc">这是金字塔唯一空白，且精确命中主题「端到端 TDD 是挑战」。仓库里端到端测试<b>从未存在过</b>——不是被删，是零起点。</p>
+        <span class="path mono">无 playwright.config · 无 e2e/ · 无 *.e2e.ts · git log --all 零命中</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">缺失实证</p>
+            <ul>
+              <li><b>playwright</b> — 无 config · 无 node_modules</li>
+              <li><b>e2e 目录</b> — 不存在 · vitest/jest/cypress 全无</li>
+              <li><b>git 历史</b> — <span class="mono">git log --all</span> 零命中 = 从未有过</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">唯一替代（非真 E2E）</p>
+            <ul>
+              <li>20 个 proof/battery/check 脚本</li>
+              <li>但它们是<b>契约 proof</b>，非浏览器走流程</li>
+              <li>仅 3 个真连网 · 无 UI 流程驱动</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note">要点卡 ①：<b>端到端 TDD 难点</b> —— AI 一次交付高质量 e2e 用例尚未被验证，仓库无任何现成基准。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 2: Integration -->
+  <section class="stage" data-accent="intg">
+    <div class="flow">
+      <span class="node-dot">2</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">金字塔中层</span>
+          <h2 class="stage-title">集成测试 🟡 部分</h2>
+          <span class="stage-role">AI 好做 · 部分连真库</span>
+        </div>
+        <p class="stage-desc">battery 脚本有能力连真实 dev DB，但覆盖率依赖 DATABASE_URL、不进 CI，且仅 3 个真正连网。</p>
+        <span class="path mono">qa501/701/801-money/redemption/spend-restore-battery.ts</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">已连真库</p>
+            <ul>
+              <li><b>qa701-redemption-battery</b> — 对迁移后 dev DB 跑</li>
+              <li><b>telemetry / platform-flags</b> — 带真实状态</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">缺口</p>
+            <ul>
+              <li>仅 3 个真连网 · 其余静态/mock</li>
+              <li>需 DATABASE_URL · CI 无 DB → 不进守门</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 3: API -->
+  <section class="stage" data-accent="api">
+    <div class="flow">
+      <span class="node-dot">3</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">金字塔中层</span>
+          <h2 class="stage-title">接口测试 🟢 强项</h2>
+          <span class="stage-role">AI 好做 · 契约驱动</span>
+        </div>
+        <p class="stage-desc">接口层以「契约 = proof 脚本」落地，与 INT-xxx 契约文档一一对应，直接呼应用户主题「测试是契约的一部分」。</p>
+        <span class="path mono">int501/601/602-reversal-proof.ts · api501/601/701-proof.ts</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">INT 接缝 proof</p>
+            <ul>
+              <li><b>int501</b> 反转 · <b>int601</b> pipeline · <b>int602</b> 反转</li>
+              <li>对应 <span class="mono">INT-001</span> 契约 runtime 复核列</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">API proof</p>
+            <ul>
+              <li><b>api501</b> 信用折扣 · <b>api601</b> surface</li>
+              <li><b>api701</b> 兑换 actions</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 4: Unit -->
+  <section class="stage" data-accent="unit">
+    <div class="flow">
+      <span class="node-dot">4</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">金字塔底层</span>
+          <h2 class="stage-title">单元测试 🟢 密集成熟</h2>
+          <span class="stage-role">AI 好做 · 204 测试</span>
+        </div>
+        <p class="stage-desc">最扎实的一层：204 个 <span class="mono">*.test.ts</span> 覆盖 11 个核心模块，命名即契约（spec 前缀），零第三方框架依赖。</p>
+        <span class="path mono">tsx --test src/{11 模块}/__tests__/*.test.ts</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">分布</p>
+            <ul>
+              <li>lib 81 · practice 28 · course 24 · rewards 17</li>
+              <li>payment 12 · analytics 11 · entitlement 10 · credits 10</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">契约测试 34 个</p>
+            <ul>
+              <li>entitlement-contracts · admin-audit-contracts</li>
+              <li>required-env · fail-mode · dep802-readiness</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note">要点卡 ③：<b>未来</b> —— AI 写用例 = 写代码；下三层已验证（34 契约实锤），顶层待引入。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 5: CI Gate -->
+  <section class="stage" data-accent="gate">
+    <div class="flow">
+      <span class="node-dot">5</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">守门</span>
+          <h2 class="stage-title">CI 测试门禁 🟢 完整</h2>
+          <span class="stage-role">fail-closed · 机械执行</span>
+        </div>
+        <p class="stage-desc">ci.yml 在推 main/PR 时机械执行全部下三层测试 + 类型 + 守卫——「测试作为契约守门」的正面实证。但端到端缺席于此。</p>
+        <span class="path mono">.github/workflows/ci.yml · on: pull_request + push:main</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">CI 步骤</p>
+            <ul>
+              <li>check:env（CODE-801 契约漂移门）</li>
+              <li>7×test:（config/course/practice/seo/backend/analytics/exercises）</li>
+              <li>tsc --noEmit · guard:attribution-secret</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">要点卡 ② 团队能否耐住</p>
+            <ul>
+              <li>测试混 src/ 与 scripts/，无独立分层</li>
+              <li>靠命名默契（__tests__ vs *-proof vs *-battery）</li>
+              <li>非显式目录结构</li>
+            </ul>
+          </div>
+        </div>
+        <div class="rev-loop">
+          <p class="t">端到端缺位（本轮唯一红色）</p>
+          <p>金字塔下三层是契约、顶层是空白——<b>单元/接口/集成已成熟并被 CI 机械执行，端到端从未存在</b>。这正是「测试是契约的一部分」落地到「端到端守护尚未上岗」的差距。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VERDICT -->
+  <section class="verdict">
+    <h2>这条测试契约流水线强在哪、差在哪</h2>
+    <p>项目用 <em>tsx + Node 原生 test runner + spec 前缀命名</em> 建起了密集的下三层测试，CI 推 main/PR 即机械执行——「测试作为契约」在下三层已充分落地。</p>
+    <p>真正的空白在顶层：<em>端到端测试从未存在</em>。下三层验证了「AI 写契约测试好做」（34 契约实锤），但「端到端 TDD 是挑战」这一论断在仓库里尚无解法、也无基准可打磨——这是本维度最值得启动的动作。</p>
+    <p style="margin-top:14px">
+      <span class="pill e2e">端到端 🔴 零</span>
+      <span class="pill intg">集成 🟡 部分</span>
+      <span class="pill api">接口 🟢 强</span>
+      <span class="pill unit">单元 🟢 204</span>
+      <span class="pill gate">CI 🟢 守门</span>
+    </p>
+  </section>
+
+</main>

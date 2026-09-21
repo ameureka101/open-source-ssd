@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520">
+  <defs>
+    <!-- Background Grid -->
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#1C1F24" />
+    </pattern>
+
+    <!-- Gradients -->
+    <linearGradient id="terracottaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D68160" />
+      <stop offset="100%" stop-color="#F4B49B" />
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E06666" />
+      <stop offset="100%" stop-color="#F4A2A2" />
+    </linearGradient>
+
+    <!-- Glow Filters -->
+    <filter id="glowTerracotta" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="100%" height="100%" fill="#0E1012" />
+  <rect width="100%" height="100%" fill="url(#grid)" />
+
+  <!-- Header Section -->
+  <text x="40" y="42" fill="#6A737D" font-family="monospace" font-size="12">PROTOCOL DESIGN // CONTEXT FIREWALL &amp; FRONTMATTER SPEC</text>
+  <text x="40" y="68" fill="#D68160" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" font-size="22">Markdown 即协议：11.23x 上下文压缩机制</text>
+
+  <!-- ================= LEFT: TRADITIONAL FULL-READ (PAIN POINT) ================= -->
+  <g transform="translate(40, 105)">
+    <rect width="360" height="350" rx="10" fill="#15181D" stroke="#3D2020" stroke-width="1.5" />
+    <rect width="360" height="32" rx="6" fill="#241919" />
+    <circle cx="16" cy="16" r="4" fill="#E06666" />
+    <text x="28" y="21" fill="#F4A2A2" font-family="monospace" font-size="11" font-weight="bold">TRADITIONAL UNSTRUCTURED READ</text>
+
+    <text x="20" y="60" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">痛点：整文通读与上下文溢出</text>
+    <text x="20" y="80" fill="#8C95A0" font-family="monospace" font-size="11">每次注入 15,000+ Tokens 大段文本</text>
+
+    <!-- Simulating huge blob of text lines -->
+    <g transform="translate(20, 100)" opacity="0.35">
+      <rect width="320" height="6" rx="3" fill="#8C95A0" />
+      <rect y="12" width="280" height="6" rx="3" fill="#8C95A0" />
+      <rect y="24" width="310" height="6" rx="3" fill="#8C95A0" />
+      <rect y="36" width="260" height="6" rx="3" fill="#8C95A0" />
+      <rect y="48" width="300" height="6" rx="3" fill="#8C95A0" />
+      <rect y="60" width="290" height="6" rx="3" fill="#8C95A0" />
+      <rect y="72" width="240" height="6" rx="3" fill="#8C95A0" />
+      <rect y="84" width="320" height="6" rx="3" fill="#8C95A0" />
+    </g>
+
+    <!-- Warning Callout Box -->
+    <g transform="translate(20, 210)">
+      <rect width="320" height="110" rx="6" fill="#2A1616" stroke="#E06666" stroke-width="1" />
+      <text x="15" y="24" fill="#E06666" font-family="monospace" font-size="11" font-weight="bold">CRITICAL DEFECTS:</text>
+      <text x="15" y="44" fill="#F4A2A2" font-family="system-ui, sans-serif" font-size="11">• 随着轮次增加，前期约束指令被无声冲淡</text>
+      <text x="15" y="64" fill="#F4A2A2" font-family="system-ui, sans-serif" font-size="11">• AI 自行提炼 P0 产生幻觉与漏项</text>
+      <text x="15" y="84" fill="#F4A2A2" font-family="system-ui, sans-serif" font-size="11">• 单次交互费用与延迟飙升 10 倍以上</text>
+    </g>
+  </g>
+
+  <!-- Middle Transition Arrow -->
+  <g transform="translate(415, 260)">
+    <circle cx="25" cy="0" r="18" fill="#1C212A" stroke="#D68160" stroke-width="1.5" />
+    <path d="M 18 0 L 32 0 M 27 -5 L 32 0 L 27 5" fill="none" stroke="#D68160" stroke-width="2" />
+    <text x="25" y="28" fill="#D68160" font-family="monospace" font-size="10" text-anchor="middle">11.23x 压缩</text>
+  </g>
+
+  <!-- ================= RIGHT: SSD PROTOCOL (FRONTMATTER HEAD) ================= -->
+  <g transform="translate(480, 105)">
+    <rect width="380" height="350" rx="10" fill="#15181D" stroke="#D68160" stroke-width="1.5" />
+    <rect width="380" height="32" rx="6" fill="#201815" />
+    <circle cx="16" cy="16" r="4" fill="#D68160" filter="url(#glowTerracotta)" />
+    <text x="28" y="21" fill="#F4B49B" font-family="monospace" font-size="11" font-weight="bold">SSD FRONTMATTER COMPRESSION</text>
+
+    <text x="20" y="60" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">规范：头部 Frontmatter 契约 + Oneliner</text>
+    <text x="20" y="80" fill="#8C95A0" font-family="monospace" font-size="11">命令直接读取：head -n 35 doc.md (~300 字节)</text>
+
+    <!-- Code Block Preview -->
+    <g transform="translate(20, 95)">
+      <rect width="340" height="155" rx="6" fill="#0A0C0E" stroke="#2D3139" stroke-width="1" />
+      <text x="12" y="20" fill="#6A737D" font-family="monospace" font-size="10">---</text>
+      <text x="12" y="36" fill="#8C95A0" font-family="monospace" font-size="10">dimension: <tspan fill="#FFFFFF">D2 · 文档进度追踪完善度</tspan></text>
+      <text x="12" y="52" fill="#8C95A0" font-family="monospace" font-size="10">findings-summary:</text>
+      
+      <!-- finding 1 -->
+      <text x="24" y="68" fill="#D68160" font-family="monospace" font-size="10">- id: PROG-1 <tspan fill="#E06666">level: P0</tspan></text>
+      <text x="36" y="84" fill="#6FA8DC" font-family="monospace" font-size="10">exposure: <tspan fill="#D68160">dormant</tspan></text>
+      <text x="36" y="100" fill="#A5D6A7" font-family="monospace" font-size="9">oneliner: 进度写入静默吞错，未持权停摆</text>
+
+      <!-- finding 2 -->
+      <text x="24" y="118" fill="#D68160" font-family="monospace" font-size="10">- id: PROG-3 <tspan fill="#F4B49B">level: P1</tspan></text>
+      <text x="36" y="134" fill="#6FA8DC" font-family="monospace" font-size="10">exposure: <tspan fill="#E06666">live-traffic</tspan></text>
+      <text x="12" y="148" fill="#6A737D" font-family="monospace" font-size="10">---</text>
+    </g>
+
+    <!-- Strategic Triage Branching -->
+    <g transform="translate(20, 260)">
+      <rect width="340" height="80" rx="6" fill="#121820" stroke="#3D85C6" stroke-width="1" />
+      <text x="15" y="20" fill="#6FA8DC" font-family="monospace" font-size="10" font-weight="bold">EXPOSURE TRIAGE (决策分流):</text>
+      <text x="15" y="38" fill="#C9D1D9" font-family="system-ui, sans-serif" font-size="10">• <tspan fill="#E06666" font-weight="bold">live-traffic</tspan>：线上正影响真实流量，即刻立项修复</text>
+      <text x="15" y="54" fill="#C9D1D9" font-family="system-ui, sans-serif" font-size="10">• <tspan fill="#D68160" font-weight="bold">dormant</tspan>：休眠高危，开闸才转线上，评估后安排</text>
+      <text x="15" y="70" fill="#C9D1D9" font-family="system-ui, sans-serif" font-size="10">• <tspan fill="#8C95A0" font-weight="bold">ops-only</tspan>：内部脚手架与运维，不阻塞发布门</text>
+    </g>
+  </g>
+
+  <!-- Bottom Flow Legend -->
+  <g transform="translate(40, 475)">
+    <rect width="820" height="26" rx="4" fill="#13161B" />
+    <text x="15" y="17" fill="#6A737D" font-family="monospace" font-size="10">KEY INSIGHT: 前置 Frontmatter 让下游 Agent 无需加载万字长文，精准获取问题切片，彻底消除跨 Session 遗忘</text>
+  </g>
+
+</svg>

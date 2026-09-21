@@ -1,0 +1,29 @@
+# GLOBAL STITCH REFINEMENT RULES (PROMPT TEMPLATE)
+# Apply these rules to every page generation to enforce industrial design discipline.
+
+1. Brand Identity & Color Philosophy:
+- Aesthetic: Technical, authoritative, modern minimalist, high visual density.
+- Palette: Ink & Paper with Warm Amber / Terracotta Accent.
+- Primary Background: Crisp clean light background (#FDFCFB) or deep technical charcoal (#0E1012).
+- Accent: Restrained warm amber/terracotta (#D68160 / #D4930D) for primary CTAs and key badges.
+- STRICT PROHIBITION: NO purple, NO violet, NO indigo, NO blue-purple gradient, NO neon highlights.
+- STRICT PROHIBITION: NO decorative blurred shadows, NO rounded-full cards.
+
+2. Negative Constraints & Decorum:
+- NO emojis anywhere in the layout.
+- NO badges, certificates, shields, medals, or faux-official seals.
+- Maintain independent professional technical craftsmanship.
+
+3. Chinese Typography Rules:
+- Copywriting is Chinese-first.
+- Do NOT apply uppercase, extreme letter-spacing (tracking-widest), or long monospace styling to Chinese sentences.
+- Monospace font is STRICTLY RESERVED for short labels, code snippets, status badges, metrics, and timestamps.
+
+4. Global Shell Consistency:
+- Navbar: Minimalist 1px border bottom. Left: Brand Icon + Title. Center: 4-5 Navigation links. Right: Single restrained CTA button.
+- Footer: 1px border top. Copyright, independent disclaimer, essential legal links.
+- NO hardcoded outdated years.
+
+5. Code Rule:
+- Exported code.html serves solely as a READ-ONLY visual blueprint.
+- Production implementation will strictly map elements to existing design tokens and native UI component library.

@@ -1,0 +1,32 @@
+# Cursor AI Rules (Harness Engineering / SSD Suite)
+
+You are collaborating on a production-grade fullstack Next.js project governed by the **Spec-Driven Development (SSD) Harness Engineering Protocol**.
+
+## Core Engineering Disciplines (HARD CONSTRAINTS)
+
+1. **Physical Proof over Conversation**:
+   - Never declare a task "complete" in chat. Completion is strictly determined by physical disk state:
+     (i) The task specification file contains a `## 收口记录` block;
+     (ii) Status field is a verified terminal state (e.g. `PASS`, `implemented`);
+     (iii) `pnpm run gate:check` exits with code 0.
+   - Any thrown error or unhandled condition triggers **Fail-Closed** (Gate is RED, never a silent pass).
+
+2. **Design System Truth (No Isolated CSS)**:
+   - Follow the three-tier design truth: `design-tokens.md -> components.md -> page_specs`.
+   - Never hardcode arbitrary HEX colors (e.g., `bg-[#1a2b3c]`) or arbitrary font sizes. Use semantic CSS variables and design tokens.
+   - Keep components reusable; pages must only assemble components and pass content.
+
+3. **Turbopack Server Actions Boundary (INT-302)**:
+   - In any file with `'use server'` directive, **NEVER re-export TypeScript types (`export type { ... }`)**.
+   - Type exports must live in dedicated `.types.ts` or `types.d.ts` files to prevent Turbopack client/server bundler collisions.
+
+4. **Silent Failure Prohibition**:
+   - Never write `catch (err) { return { success: true }; }` or log silent warnings while returning falsified success data.
+   - All errors must be explicitly typed, tracked, and propagated through safe action handlers.
+
+5. **Step-by-Step Workflow**:
+   - When asked to add or optimize a feature:
+     1. First draft the specification (spec) referencing `specs/`;
+     2. Write tests and code;
+     3. Verify using `pnpm run gate:check`;
+     4. Update spec status with physical commit record.

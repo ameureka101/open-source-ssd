@@ -1,0 +1,367 @@
+<title>契约驱动开发流水线</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ground: #eef0ea;
+    --ground-2: #e4e8df;
+    --ink: #1e221d;
+    --ink-soft: #52584f;
+    --ink-faint: #7e8578;
+    --line: #cfd6c8;
+    --accent-matrix: #3d5a82;    /* slate — 需求矩阵 / 分层 */
+    --accent-spec: #2f5e4e;      /* green — spec 四件套 / 显性化 */
+    --accent-rev: #8a6d2f;       /* amber — FPF 反向推导 */
+    --accent-verify: #b3432a;    /* red-oxide — 验证 / 生产红线 */
+    --card: #fafbf7;
+    --card-ink: #262a24;
+    --code-bg: #eef0e8;
+    --shadow: 0 1px 2px rgba(30,34,29,.06), 0 6px 20px -12px rgba(30,34,29,.25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #151713;
+      --ground-2: #1c1e19;
+      --ink: #eceee6;
+      --ink-soft: #b1b8a9;
+      --ink-faint: #767d6f;
+      --line: #34372f;
+      --accent-matrix: #7d9cc8;
+      --accent-spec: #63b395;
+      --accent-rev: #c9a855;
+      --accent-verify: #e07a58;
+      --card: #1e211b;
+      --card-ink: #efefe8;
+      --code-bg: #262921;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #151713;
+    --ground-2: #1c1e19;
+    --ink: #eceee6;
+    --ink-soft: #b1b8a9;
+    --ink-faint: #767d6f;
+    --line: #34372f;
+    --accent-matrix: #7d9cc8;
+    --accent-spec: #63b395;
+    --accent-rev: #c9a855;
+    --accent-verify: #e07a58;
+    --card: #1e211b;
+    --card-ink: #efefe8;
+    --code-bg: #262921;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 28px 96px; }
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .82em;
+  }
+  .mono { font-size: .78em; }
+
+  header { padding: 56px 0 8px; border-bottom: 1px solid var(--line); }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 560;
+    font-size: clamp(2.1rem, 5vw, 3.3rem);
+    line-height: 1.05; letter-spacing: -.01em;
+    margin: 0 0 18px; text-wrap: balance;
+  }
+  .lede { max-width: 66ch; font-size: 1.12rem; color: var(--ink-soft); margin: 0 0 26px; }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px 22px;
+    font-family: "IBM Plex Mono", monospace; font-size: .76rem;
+    color: var(--ink-faint); margin-bottom: 26px;
+  }
+  .meta-row b { color: var(--ink-soft); font-weight: 600; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px 24px;
+    padding: 16px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--ink-soft); }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+  .swatch.matrix { background: var(--accent-matrix); }
+  .swatch.spec   { background: var(--accent-spec); }
+  .swatch.rev    { background: var(--accent-rev); }
+  .swatch.verify { background: var(--accent-verify); }
+
+  /* ── pipeline ─────────────────────────────── */
+  .pipeline { margin-top: 44px; }
+  .stage { position: relative; margin-bottom: 16px; }
+  .flow { position: relative; padding-left: 30px; }
+  .flow::before {
+    content: ""; position: absolute; left: 10px; top: 8px; bottom: -16px;
+    width: 2px; background: var(--line);
+  }
+  .stage:last-child .flow::before { display: none; }
+  .node-dot {
+    position: absolute; left: 0; top: 8px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--card); border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "IBM Plex Mono", monospace; font-size: .66rem;
+    color: var(--ink-faint); z-index: 1;
+  }
+  .stage[data-accent="matrix"] .node-dot  { border-color: var(--accent-matrix); color: var(--accent-matrix); }
+  .stage[data-accent="spec"] .node-dot    { border-color: var(--accent-spec); color: var(--accent-spec); }
+  .stage[data-accent="rev"] .node-dot     { border-color: var(--accent-rev); color: var(--accent-rev); }
+  .stage[data-accent="verify"] .node-dot  { border-color: var(--accent-verify); color: var(--accent-verify); }
+
+  .card {
+    background: var(--card); color: var(--card-ink);
+    border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 22px 24px;
+  }
+  .stage-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+  .stage-num { font-family: "Fraunces", Georgia, serif; font-size: .86rem; font-weight: 600; color: var(--ink-faint); }
+  .stage-title { font-family: "Fraunces", Georgia, serif; font-size: 1.4rem; font-weight: 560; margin: 0; text-wrap: balance; }
+  .stage-role {
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint); margin-left: auto;
+  }
+  .stage-desc { color: var(--ink-soft); font-size: .98rem; margin: 6px 0 16px; max-width: 66ch; }
+  .path {
+    display: block; background: var(--code-bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 12px; font-size: .74rem; color: var(--ink-soft);
+    overflow-x: auto; white-space: nowrap; margin-bottom: 14px;
+  }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+  .col { background: var(--ground); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .col-label {
+    font-family: "IBM Plex Mono", monospace; font-size: .68rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 8px;
+  }
+  .col ul { margin: 0; padding-left: 18px; }
+  .col li { font-size: .9rem; color: var(--ink-soft); margin: 3px 0; }
+  .col li b { color: var(--ink); font-weight: 600; }
+
+  .pill {
+    display: inline-block; font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .06em; padding: 3px 9px;
+    border-radius: 20px; border: 1px solid var(--line); color: var(--ink-soft);
+    margin: 0 4px 4px 0;
+  }
+  .pill.matrix { border-color: var(--accent-matrix); color: var(--accent-matrix); }
+  .pill.spec   { border-color: var(--accent-spec); color: var(--accent-spec); }
+  .pill.rev    { border-color: var(--accent-rev); color: var(--accent-rev); }
+  .pill.verify { border-color: var(--accent-verify); color: var(--accent-verify); }
+
+  .note {
+    margin-top: 16px; padding: 12px 16px;
+    border-left: 3px solid var(--accent-rev);
+    background: var(--ground); border-radius: 0 8px 8px 0;
+    font-size: .9rem; color: var(--ink-soft);
+  }
+  .note b { color: var(--ink); }
+
+  .rev-loop {
+    margin-top: 26px; padding: 18px 20px;
+    border: 1px dashed var(--accent-rev); border-radius: 10px;
+    background: var(--ground);
+  }
+  .rev-loop .t {
+    font-family: "IBM Plex Mono", monospace; font-size: .7rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent-rev); margin: 0 0 8px;
+  }
+  .rev-loop p { margin: 0; color: var(--ink-soft); font-size: .92rem; }
+  .rev-loop p b { color: var(--ink); }
+
+  .verdict {
+    margin-top: 56px; border: 1px solid var(--line); border-radius: 12px;
+    padding: 28px 30px; background: var(--ground-2);
+  }
+  .verdict h2 { font-family: "Fraunces", Georgia, serif; font-size: 1.5rem; font-weight: 560; margin: 0 0 12px; text-wrap: balance; }
+  .verdict p { color: var(--ink-soft); margin: 0 0 10px; max-width: 72ch; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict em { color: var(--accent-spec); font-style: normal; font-weight: 600; }
+</style>
+
+<header class="wrap">
+  <p class="kicker">生产级全栈工程 · Harness Engineering · 契约层</p>
+  <h1>契约驱动开发流水线</h1>
+  <p class="lede">一个功能如何从差距分析出发，经分层矩阵、spec 四件套、反向证伪审查，直到可执行收口 —— 以 OPS-901 真实文件为底，一次看清 SDD 的完整闭环。</p>
+  <div class="meta-row">
+    <span><b>取证基线</b> 06-24 小时干geo-seo 专项</span>
+    <span><b>样本</b> OPS-901 · INT-001 · requirements-matrix-generator</span>
+    <span><b>日期</b> 2026-08-28</span>
+    <span><b>只读</b> 未改文件 · 未触发生产</span>
+  </div>
+  <div class="legend">
+    <span class="legend-item"><span class="swatch matrix"></span>分层 · 需求矩阵</span>
+    <span class="legend-item"><span class="swatch spec"></span>显性化 · spec 四件套</span>
+    <span class="legend-item"><span class="swatch rev"></span>反向推导 · FPF 证伪</span>
+    <span class="legend-item"><span class="swatch verify"></span>验证 · 收口 / 生产</span>
+  </div>
+</header>
+
+<main class="wrap pipeline">
+
+  <!-- STAGE 1 -->
+  <section class="stage" data-accent="matrix">
+    <div class="flow">
+      <span class="node-dot">1</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 1 站</span>
+          <h2 class="stage-title">分层需求矩阵</h2>
+          <span class="stage-role">分层 · 差距分析 → 矩阵</span>
+        </div>
+        <p class="stage-desc">任何差距分析 / 审计 / 反馈报告，先经 runtime 复核（禁把老文档断言直接矩阵化），再按 10 层技术分类法组织成可追溯的需求文档体系，输出一个 <span class="mono">00-INDEX.md</span> 导航枢纽 + N 个分层需求文档。</p>
+        <span class="path mono">requirements-matrix-generator → requirements/00-INDEX.md</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">10 层技术分类</p>
+            <ul>
+              <li><b>BL · API · DB · UI</b> — 业务/接口/数据/前端</li>
+              <li><b>INT · SEC · CODE</b> — 集成/安全/规范</li>
+              <li><b>OPS · QA · DEP</b> — 运维/测试/部署</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">00-INDEX 契约枢纽</p>
+            <ul>
+              <li>项目约束清单（权威单点）· 决策台账</li>
+              <li>Owner 批复 · 热点表 · 波次计划</li>
+              <li>覆盖审计（finding ID 去向追溯）· 收口表</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 2 -->
+  <section class="stage" data-accent="spec">
+    <div class="flow">
+      <span class="node-dot">2</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 2 站</span>
+          <h2 class="stage-title">spec 四件套</h2>
+          <span class="stage-role">显性化 · 契约先于实现落盘</span>
+        </div>
+        <p class="stage-desc">每条需求经 spec-dev 生成四件套，契约先于实现写进磁盘。01 定义「要什么」，02 定义「怎么设计」，03 拆成「任务卡」，04 做「反向证伪」。这是整个 SDD 的心脏。</p>
+        <span class="path mono">spec-dev → requirements-specs/…/OPS-901-…/{01,02,03,04}*.md</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">01 → 02 → 03 正向链</p>
+            <ul>
+              <li><b>01 requirements</b> — EARS 需求 + AC + 依赖</li>
+              <li><b>02 design</b> — 硬约束 + Properties + 接口</li>
+              <li><b>03 tasks</b> — 任务卡 + 追溯矩阵 + 收口记录</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">可执行契约（最强样本）</p>
+            <ul>
+              <li><b>env 契约三重</b> — required-env → check 脚本 → CI</li>
+              <li><b>guard:attribution-secret</b> — 脚本门禁</li>
+              <li><b>收口即证据</b> — 无收口记录 = 未收口</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 3: REVERSE -->
+  <section class="stage" data-accent="rev">
+    <div class="flow">
+      <span class="node-dot">3</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 3 站</span>
+          <h2 class="stage-title">FPF 反向证伪</h2>
+          <span class="stage-role">反向推导 · 作者 ≠ 审查者</span>
+        </div>
+        <p class="stage-desc">04-fpf-review 不是正向重复，而是<b>读 02/03 反查 01 的矛盾</b>。作者自陈薄弱处之外，独立发现 F-1~F-7（幽灵能力、恒真断言、自造矛盾）。这是抓「正向链自造 latent 矛盾」的唯一通道。</p>
+        <span class="path mono">04-fpf-review.md · D1-D5 五维 + Q4 独立发现</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">D1-D5 五维</p>
+            <ul>
+              <li><b>D1</b> 需求完整性 · <b>D2</b> 设计覆盖率</li>
+              <li><b>D3</b> 任务追溯性 · <b>D4</b> 术语一致</li>
+              <li><b>D5</b> 可测试性（oracle 可证伪）</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">R_eff 机械规则</p>
+            <ul>
+              <li>R_eff = min(D1..D5)，禁手工上调</li>
+              <li>≥0.95 直接实施 · 0.80-0.89 不可实施</li>
+              <li>&lt;0.80 重新设计</li>
+            </ul>
+          </div>
+        </div>
+        <div class="rev-loop">
+          <p class="t">反向证伪闭环（实证）</p>
+          <p>FPF 在 OPS-901 独立抓到 <b>F-1</b>（<span class="mono">--debugview</span> 幽灵能力：三处依赖、零设计零实现）、<b>F-2</b>（Req 3.4 参数键校验结构上不可证伪）、<b>F-3</b>（Property 9 与 Task 5.1 自我矛盾）。正向生成再严密，也会自造矛盾——<b>只有反向通道能抓</b>。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 4 -->
+  <section class="stage" data-accent="verify">
+    <div class="flow">
+      <span class="node-dot">4</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 4 站</span>
+          <h2 class="stage-title">实施 · 验证 · 收口</h2>
+          <span class="stage-role">验证 · 生产红线</span>
+        </div>
+        <p class="stage-desc">R_eff 达标的 spec 进入实施：按 03 任务卡走单件循环，过质量门，写收口记录，出 EXECUTION-REPORT。生产动作永远分离，写成精确 Owner 请求，绝不伪装成 deferred。</p>
+        <span class="path mono">03-tasks.md 收口记录 → EXECUTION-REPORT-wave1-ops901-2026-07-28.md</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">质量门（机械 exit code）</p>
+            <ul>
+              <li>tsc --noEmit · test:config · test:analytics</li>
+              <li>test:backend · test:seo · build</li>
+              <li>769 pass / 1 skipped · 109 页 build</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">收口保证</p>
+            <ul>
+              <li>收口记录 <span class="mono">状态判定</span> 五态</li>
+              <li>Exact Owner Production Request</li>
+              <li>Red-Line Self-Audit</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VERDICT -->
+  <section class="verdict">
+    <h2>这条 SDD 流水线强在哪</h2>
+    <p>项目是<b>文档驱动的规范开发</b>而非<b>机器强制的契约开发</b>。它用 <em>分层矩阵 + FPF 反向人审</em> 替代了「契约自动生成 + 契约自动校验」——在 AI 长跑场景下已足够强（OPS-901 12 任务全收口 PASS）。</p>
+    <p>分层与反向推导是强项；相对弱的是结构化——大部分契约是 Markdown 非机器可解析，只有 env 契约真正可执行。机械层与文档层的成熟度差了两个量级。</p>
+    <p style="margin-top:14px">
+      <span class="pill matrix">分层矩阵 · 10 层</span>
+      <span class="pill spec">四件套 · 契约先落盘</span>
+      <span class="pill rev">FPF 反向 · 抓自造矛盾</span>
+      <span class="pill verify">收口即证据 · 生产分离</span>
+    </p>
+  </section>
+
+</main>

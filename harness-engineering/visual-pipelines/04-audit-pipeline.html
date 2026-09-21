@@ -1,0 +1,398 @@
+<!doctype html>
+<title>Harness 审计 Pipeline · 可复用方法论</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ground: #eef0ea;
+    --ground-2: #e4e8df;
+    --ink: #1e221d;
+    --ink-soft: #52584f;
+    --ink-faint: #7e8578;
+    --line: #cfd6c8;
+    --accent-map: #3d5a82;      /* slate — 锚点取证 */
+    --accent-exec: #2f5e4e;     /* green — 双轨并行 */
+    --accent-contract: #8a6d2f; /* amber — 四维判定 */
+    --accent-loop: #b3432a;     /* red-oxide — 找差距 */
+    --accent-deliver: #5a4a7a;  /* violet — 双份产物 */
+    --accent-compass: #2f5e8a;  /* steel — 罗盘落盘 */
+    --card: #fafbf7;
+    --card-ink: #262a24;
+    --code-bg: #eef0e8;
+    --shadow: 0 1px 2px rgba(30,34,29,.06), 0 6px 20px -12px rgba(30,34,29,.25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #151713; --ground-2: #1c1e19;
+      --ink: #eceee6; --ink-soft: #b1b8a9; --ink-faint: #767d6f; --line: #34372f;
+      --accent-map: #7d9cc8; --accent-exec: #63b395; --accent-contract: #c9a855;
+      --accent-loop: #e07a58; --accent-deliver: #a98fc9; --accent-compass: #7ea9d6;
+      --card: #1e211b; --card-ink: #efefe8; --code-bg: #262921;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #151713; --ground-2: #1c1e19;
+    --ink: #eceee6; --ink-soft: #b1b8a9; --ink-faint: #767d6f; --line: #34372f;
+    --accent-map: #7d9cc8; --accent-exec: #63b395; --accent-contract: #c9a855;
+    --accent-loop: #e07a58; --accent-deliver: #a98fc9; --accent-compass: #7ea9d6;
+    --card: #1e211b; --card-ink: #efefe8; --code-bg: #262921;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "Source Sans 3", system-ui, sans-serif; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 28px 96px; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82em; }
+  .mono { font-size: .78em; }
+
+  header { padding: 56px 0 8px; border-bottom: 1px solid var(--line); }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif; font-weight: 560;
+    font-size: clamp(2.1rem, 5vw, 3.3rem); line-height: 1.05; letter-spacing: -.01em;
+    margin: 0 0 18px; text-wrap: balance;
+  }
+  .lede { max-width: 66ch; font-size: 1.12rem; color: var(--ink-soft); margin: 0 0 26px; }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px 22px;
+    font-family: "IBM Plex Mono", monospace; font-size: .76rem;
+    color: var(--ink-faint); margin-bottom: 26px;
+  }
+  .meta-row b { color: var(--ink-soft); font-weight: 600; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px 24px;
+    padding: 16px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--ink-soft); }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+  .swatch.map       { background: var(--accent-map); }
+  .swatch.exec      { background: var(--accent-exec); }
+  .swatch.contract  { background: var(--accent-contract); }
+  .swatch.loop      { background: var(--accent-loop); }
+  .swatch.deliver   { background: var(--accent-deliver); }
+  .swatch.compass   { background: var(--accent-compass); }
+
+  .pipeline { margin-top: 44px; }
+  .stage { position: relative; margin-bottom: 16px; }
+  .flow { position: relative; padding-left: 30px; }
+  .flow::before {
+    content: ""; position: absolute; left: 10px; top: 8px; bottom: -16px;
+    width: 2px; background: var(--line);
+  }
+  .stage:last-child .flow::before { display: none; }
+  .node-dot {
+    position: absolute; left: 0; top: 8px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--card); border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "IBM Plex Mono", monospace; font-size: .66rem;
+    color: var(--ink-faint); z-index: 1;
+  }
+  .stage[data-accent="map"]      .node-dot { border-color: var(--accent-map); color: var(--accent-map); }
+  .stage[data-accent="exec"]     .node-dot { border-color: var(--accent-exec); color: var(--accent-exec); }
+  .stage[data-accent="contract"] .node-dot { border-color: var(--accent-contract); color: var(--accent-contract); }
+  .stage[data-accent="loop"]     .node-dot { border-color: var(--accent-loop); color: var(--accent-loop); }
+  .stage[data-accent="deliver"]  .node-dot { border-color: var(--accent-deliver); color: var(--accent-deliver); }
+  .stage[data-accent="compass"]  .node-dot { border-color: var(--accent-compass); color: var(--accent-compass); }
+
+  .card {
+    background: var(--card); color: var(--card-ink);
+    border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 22px 24px;
+  }
+  .stage-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+  .stage-num { font-family: "Fraunces", Georgia, serif; font-size: .86rem; font-weight: 600; color: var(--ink-faint); }
+  .stage-title { font-family: "Fraunces", Georgia, serif; font-size: 1.4rem; font-weight: 560; margin: 0; text-wrap: balance; }
+  .stage-role {
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint); margin-left: auto;
+  }
+  .stage-desc { color: var(--ink-soft); font-size: .98rem; margin: 6px 0 16px; max-width: 66ch; }
+  .path {
+    display: block; background: var(--code-bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 12px; font-size: .74rem; color: var(--ink-soft);
+    overflow-x: auto; white-space: nowrap; margin-bottom: 14px;
+  }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+  .col { background: var(--ground); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .col-label {
+    font-family: "IBM Plex Mono", monospace; font-size: .68rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 8px;
+  }
+  .col ul { margin: 0; padding-left: 18px; }
+  .col li { font-size: .9rem; color: var(--ink-soft); margin: 3px 0; }
+  .col li b { color: var(--ink); font-weight: 600; }
+
+  .pill {
+    display: inline-block; font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .06em; padding: 3px 9px;
+    border-radius: 20px; border: 1px solid var(--line); color: var(--ink-soft);
+    margin: 0 4px 4px 0;
+  }
+  .pill.map      { border-color: var(--accent-map); color: var(--accent-map); }
+  .pill.exec     { border-color: var(--accent-exec); color: var(--accent-exec); }
+  .pill.contract { border-color: var(--accent-contract); color: var(--accent-contract); }
+  .pill.loop     { border-color: var(--accent-loop); color: var(--accent-loop); }
+  .pill.deliver  { border-color: var(--accent-deliver); color: var(--accent-deliver); }
+  .pill.compass  { border-color: var(--accent-compass); color: var(--accent-compass); }
+
+  .note {
+    margin-top: 16px; padding: 12px 16px; border-left: 3px solid var(--accent-contract);
+    background: var(--ground); border-radius: 0 8px 8px 0; font-size: .9rem; color: var(--ink-soft);
+  }
+  .note b { color: var(--ink); }
+
+  .verdict {
+    margin-top: 56px; border: 1px solid var(--line); border-radius: 12px;
+    padding: 28px 30px; background: var(--ground-2);
+  }
+  .verdict h2 { font-family: "Fraunces", Georgia, serif; font-size: 1.5rem; font-weight: 560; margin: 0 0 12px; text-wrap: balance; }
+  .verdict p { color: var(--ink-soft); margin: 0 0 10px; max-width: 72ch; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict em { color: var(--accent-exec); font-style: normal; font-weight: 600; }
+
+  .compass { margin-top: 24px; padding: 18px 20px; border: 1px dashed var(--accent-compass); border-radius: 10px; background: var(--ground); }
+  .compass .t {
+    font-family: "IBM Plex Mono", monospace; font-size: .7rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent-compass); margin: 0 0 8px;
+  }
+  .compass ul { margin: 0; padding-left: 18px; }
+  .compass li { color: var(--ink-soft); font-size: .92rem; margin: 3px 0; }
+  .compass li b { color: var(--ink); }
+</style>
+
+<header class="wrap">
+  <p class="kicker">生产级全栈工程 · Harness Engineering · 方法层 · 可复用管道</p>
+  <h1>Harness 审计 Pipeline</h1>
+  <p class="lede">把「多维审计 → 取证 → 图形化 → 找差距 → 交付」沉淀成一条可复用的六步管道。六份审计是同一管道跑了六个切面，管道本身才是可复用的资产。</p>
+  <div class="meta-row">
+    <span><b>沉淀源</b> 本次 6 份审计</span>
+    <span><b>切面</b> 地图/执行/契约/循环/编排/门禁·经验</span>
+    <span><b>日期</b> 2026-08-28</span>
+    <span><b>只读</b> claude-mem + 磁盘双源沉淀</span>
+  </div>
+  <div class="legend">
+    <span class="legend-item"><span class="swatch map"></span>① 锚点取证</span>
+    <span class="legend-item"><span class="swatch exec"></span>② 双轨并行</span>
+    <span class="legend-item"><span class="swatch contract"></span>③ 四维判定</span>
+    <span class="legend-item"><span class="swatch loop"></span>④ 找差距</span>
+    <span class="legend-item"><span class="swatch deliver"></span>⑤ 双份产物</span>
+    <span class="legend-item"><span class="swatch compass"></span>⑥ 罗盘落盘</span>
+  </div>
+</header>
+
+<main class="wrap pipeline">
+
+  <!-- STAGE 1 -->
+  <section class="stage" data-accent="map">
+    <div class="flow">
+      <span class="node-dot">1</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 1 站</span>
+          <h2 class="stage-title">锚点取证（只读）</h2>
+          <span class="stage-role">回顾 → 样板 → 定位</span>
+        </div>
+        <p class="stage-desc">先读 claude-mem 回顾该维度已有观察与教训，再定位审计工作区看前几份产物格式样板，最后用 git log / 目录树定位本次取证锚点。全程只读，绝不改任何生产文件，结论必须落到磁盘路径。</p>
+        <span class="path mono">claude-mem search → ls harness-enging总结/ → git log --oneline -20</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">① 回顾</p>
+            <ul>
+              <li><b>claude-mem</b> 该维度已有观察/教训</li>
+              <li><b>读一份</b> 最近完成的审计作格式样板</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">① 定位</p>
+            <ul>
+              <li><b>ls 工作区</b> 看 .md/.html/.txt 结构</li>
+              <li><b>git log</b> / 目录树定取证锚点</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note"><b>纪律：</b>只读取证 · 结论落磁盘路径 · 先看样板再动笔。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 2 -->
+  <section class="stage" data-accent="exec">
+    <div class="flow">
+      <span class="node-dot">2</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 2 站</span>
+          <h2 class="stage-title">双轨并行取证</h2>
+          <span class="stage-role">左列 ∥ 右列 · 主会话补盲</span>
+        </div>
+        <p class="stage-desc">把同一维度拆成「左列 + 右列」两个子面，各启动一个 Explore/取证 agent 并行跑；主会话不等，自己 grep / read 关键锚点复验 agent 断言。</p>
+        <span class="path mono">Agent(左列子面) ∥ Agent(右列子面) ＋ 主会话自行验证</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">门禁维度例子</p>
+            <ul>
+              <li><b>左列</b> 门禁侧（硬/软脚本、workflows、fail-closed）</li>
+              <li><b>右列</b> 经验管理侧（加/减/循环、分层、旗舰实证）</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">编排维度例子</p>
+            <ul>
+              <li><b>左列</b> S0→S5 研发生命周期</li>
+              <li><b>右列</b> ①→⑤ Agent 执行流水线</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note"><b>关键纪律：</b>agent 断言必须主会话复验——「agent 说 fail-closed，主会话 grep 到 <span class="mono">L13/L202/L316</span> 才算数」。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 3 -->
+  <section class="stage" data-accent="contract">
+    <div class="flow">
+      <span class="node-dot">3</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 3 站</span>
+          <h2 class="stage-title">四维判定</h2>
+          <span class="stage-role">优点+问题成对 · 带文件路径</span>
+        </div>
+        <p class="stage-desc">把维度拆成 3-4 个判定子项，每个给 🟢/🟡/🔴 + 一句判断。每子项「已确认优点 + 确认问题」成对列出，优点必须带真实文件路径（≠空话），最后落到「现状判断」状态表 + 一句梯度结论。</p>
+        <span class="path mono">框架回顾表 → 逐维优点/问题 → 现状判断 → 梯度结论</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">判定模板</p>
+            <ul>
+              <li><b>子面 A</b> 🟢/🟡/🔴 一句判断</li>
+              <li><b>子面 B</b> …</li>
+              <li>优点带路径 · 问题带后果</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">门禁·经验例</p>
+            <ul>
+              <li><b>硬门禁</b> 🟢 fail-closed 全机械链路</li>
+              <li><b>软门禁</b> 🟢 覆盖面广靠人审</li>
+              <li><b>经验加</b> 🟢 三层分层 · <b>经验减</b> 🟡 缺机械闸</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 4 -->
+  <section class="stage" data-accent="loop">
+    <div class="flow">
+      <span class="node-dot">4</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 4 站</span>
+          <h2 class="stage-title">找差距（增量价值）</h2>
+          <span class="stage-role">名不副实 · 自评vs实态 · 引用没校验 · 写了没上岗</span>
+        </div>
+        <p class="stage-desc">这是每次审计的增量价值所在——不是复述机制，而是揪出「写了却没有」的差距，并定 P 级。</p>
+        <span class="path mono">四类差距找法 → P0/P1/P2 分级</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">四类差距</p>
+            <ul>
+              <li><b>名不副实</b> 文档写的 vs 仓库实际有的</li>
+              <li><b>自评 vs 实态</b> 对照 harness 3.8/5.0</li>
+              <li><b>被引用没校验</b> 无时效校验（ENG-01 16 天）</li>
+              <li><b>写了没上岗</b> 17 proof 无全覆盖清单强制</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">实锤例（编排审计）</p>
+            <ul>
+              <li>⚠①「PM+交互师出 PRD+Figma」实为 HTML 蓝图</li>
+              <li>⚠②「三类 CR」实为单一对抗验证</li>
+              <li>⚠③「端到端 CI/CD」实为最小门禁无 release</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note"><b>核心：</b>找「机制在但总图不存在」的缺口——差距不是没有机制，而是机制没被一张图收拢。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 5 -->
+  <section class="stage" data-accent="deliver">
+    <div class="flow">
+      <span class="node-dot">5</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 5 站</span>
+          <h2 class="stage-title">双份产物（ASCII + HTML）</h2>
+          <span class="stage-role">.md 审计 · ASCII 全景 · HTML 彩色</span>
+        </div>
+        <p class="stage-desc">产出一份完整审计文档 + 一张终端可读的 ASCII 全景图 + 一个复用既有主题的 HTML 彩色交互版。</p>
+        <span class="path mono">&lt;主题&gt;审计-2026-08-28.md ＋ &lt;主题&gt;-pipeline.html ＋ ASCII 附录</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">审计文档 .md</p>
+            <ul>
+              <li>一句话结论 · 框架回顾 · 现状判断</li>
+              <li>P 级汇总 · 关联 · 下一步 · 锚点速查</li>
+              <li>ASCII 全景图附录</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">HTML 彩色版</p>
+            <ul>
+              <li>复用 <span class="mono">sdd-pipeline.html</span> 主题</li>
+              <li>CSS 变量 · light/dark 双色</li>
+              <li>每站一卡 · 颜色区分切面</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 6 -->
+  <section class="stage" data-accent="compass">
+    <div class="flow">
+      <span class="node-dot">6</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 6 站</span>
+          <h2 class="stage-title">罗盘落盘（决策台账 + 关联）</h2>
+          <span class="stage-role">总编排图是罗盘 · 跨维度索引</span>
+        </div>
+        <p class="stage-desc">把每个审计的「切面」写进总编排图「五维审计如何串成全景」段，与已有多份审计交叉引用（不重复），以判定基线（如 harness 3.8/5.0）作罗盘零点。</p>
+        <span class="path mono">总编排图-两条管线一套逻辑-2026-08-28.txt → 各维度切面索引</span>
+        <div class="compass">
+          <p class="t">六维罗盘（对照 harness 自评 3.8/5.0）</p>
+          <ul>
+            <li><b>地图层</b> 🟡 导航在退步（总图过期/缺父级索引）</li>
+            <li><b>执行控制面</b> 🟢 拆卡/守门/续跑已成熟（553 任务卡）</li>
+            <li><b>契约层</b> 🟢 分层+反向推导是强项（10 层+FPF 证伪）</li>
+            <li><b>循环层</b> 🟢 8 专项演进（goal 内联→独立 GOAL）</li>
+            <li><b>编排层</b> 🟢 机制在，但总图仓库不存在 → 本图补缺</li>
+            <li><b>门禁·经验层</b> 🟢 硬门禁守底线 · 软门禁靠人审 · 经验减法缺机械闸</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="verdict">
+    <h2>可复用 checklist</h2>
+    <p>下次再来一个「再按前 N 份一致方法论审计 X」：<em>六步管道不变，切面每次新换</em>。直接套下面 checklist：</p>
+    <p><span class="pill map">① claude-mem 回顾 → 看样板</span> <span class="pill exec">② 拆两子面 → 并行 agent → 补盲</span> <span class="pill contract">③ 四问判定 → 优点+问题成对</span> <span class="pill loop">④ 找差距 → 四类差距 → P 级</span> <span class="pill deliver">⑤ 双份产物 → .md + .html + ASCII</span> <span class="pill compass">⑥ 罗盘落盘 → 总编排图索引 + 关联</span></p>
+    <p><em>纪律：</em>全程只读 · agent 断言主会话复验 · 结论落磁盘路径。</p>
+    <p>六份审计只是管道跑了六次留下的一组产物；<em>管道本身才是这次沉淀的真正价值。</em></p>
+  </section>
+
+</main>

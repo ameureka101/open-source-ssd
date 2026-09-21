@@ -1,0 +1,414 @@
+<title>研发生命周期编排：两条管线一套逻辑</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ground: #eef0ea;
+    --ground-2: #e4e8df;
+    --ink: #1e221d;
+    --ink-soft: #52584f;
+    --ink-faint: #7e8578;
+    --line: #cfd6c8;
+    --accent-left: #3d5a82;   /* slate — 左列 研发生命周期 */
+    --accent-right: #b3432a;  /* red-oxide — 右列 Agent 流水线 */
+    --accent-shared: #2f5e4e; /* green — 一套逻辑 / 共享产物 */
+    --accent-gap: #8a6d2f;    /* amber — 名不副实的想象 */
+    --card: #fafbf7;
+    --card-ink: #262a24;
+    --code-bg: #eef0e8;
+    --shadow: 0 1px 2px rgba(30,34,29,.06), 0 6px 20px -12px rgba(30,34,29,.25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #151713;
+      --ground-2: #1c1e19;
+      --ink: #eceee6;
+      --ink-soft: #b1b8a9;
+      --ink-faint: #767d6f;
+      --line: #34372f;
+      --accent-left: #7d9cc8;
+      --accent-right: #e07a58;
+      --accent-shared: #63b395;
+      --accent-gap: #c9a855;
+      --card: #1e211b;
+      --card-ink: #efefe8;
+      --code-bg: #262921;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #151713;
+    --ground-2: #1c1e19;
+    --ink: #eceee6;
+    --ink-soft: #b1b8a9;
+    --ink-faint: #767d6f;
+    --line: #34372f;
+    --accent-left: #7d9cc8;
+    --accent-right: #e07a58;
+    --accent-shared: #63b395;
+    --accent-gap: #c9a855;
+    --card: #1e211b;
+    --card-ink: #efefe8;
+    --code-bg: #262921;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 28px 96px; }
+  a { color: inherit; }
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .82em;
+  }
+  .mono { font-size: .78em; }
+
+  /* ── header ─────────────────────────────────────────── */
+  header {
+    padding: 56px 0 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 560;
+    font-size: clamp(2rem, 4.6vw, 3rem);
+    line-height: 1.06;
+    letter-spacing: -.01em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  .lede {
+    max-width: 68ch;
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+    margin: 0 0 28px;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .76rem;
+    color: var(--ink-faint);
+    margin-bottom: 26px;
+  }
+  .meta-row b { color: var(--ink-soft); font-weight: 600; }
+
+  /* ── legend ─────────────────────────────────────────── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 24px;
+    padding: 16px 0 14px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 8px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .84rem;
+    color: var(--ink-soft);
+  }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+  .swatch.left   { background: var(--accent-left); }
+  .swatch.right  { background: var(--accent-right); }
+  .swatch.shared { background: var(--accent-shared); }
+  .swatch.gap    { background: var(--accent-gap); }
+
+  /* ── axis spine (shared logic) ──────────────────────── */
+  .axis {
+    margin-top: 40px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    padding: 22px 26px;
+    position: relative;
+  }
+  .axis .node {
+    position: absolute; left: -1px; top: -1px;
+    background: var(--accent-shared); color: #fff;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .64rem; letter-spacing: .14em; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 12px 0 12px 0;
+  }
+  .axis h2 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 1.4rem; font-weight: 560; margin: 6px 0 8px;
+    color: var(--accent-shared);
+  }
+  .axis p { margin: 0; color: var(--ink-soft); max-width: 70ch; }
+  .axis code { color: var(--ink); }
+
+  /* ── dual columns ──────────────────────────────────── */
+  .dual { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+  @media (max-width: 760px) { .dual { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+  .col-head {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem; letter-spacing: .13em; text-transform: uppercase;
+    padding: 10px 14px; border-radius: 8px;
+    color: #fff; font-weight: 600;
+  }
+  .col-head.left  { background: var(--accent-left); }
+  .col-head.right { background: var(--accent-right); }
+  .col-head span { opacity: .85; font-weight: 400; }
+
+  .stage {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+  }
+  .stage .top {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  }
+  .stage .snum {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem; letter-spacing: .08em;
+    color: var(--ink-faint); font-weight: 600;
+  }
+  .stage .sname {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 1.12rem; font-weight: 560; letter-spacing: -.005em; margin: 0;
+  }
+  .stage .sname.left   { color: var(--accent-left); }
+  .stage .sname.right  { color: var(--accent-right); }
+  .stage .verd {
+    margin-left: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .66rem; letter-spacing: .06em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 20px; border: 1px solid var(--line);
+    color: var(--ink-soft); white-space: nowrap;
+  }
+  .stage .verd.rich  { border-color: var(--accent-shared); color: var(--accent-shared); }
+  .stage .verd.gap   { border-color: var(--accent-gap); color: var(--accent-gap); }
+  .stage .verd.exists{ border-color: var(--ink-faint); color: var(--ink-faint); }
+  .stage .desc { color: var(--ink-soft); font-size: .9rem; margin: 8px 0 0; }
+  .stage .desc b { color: var(--ink); }
+  .stage .path {
+    display: block; margin-top: 8px;
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 10px; font-size: .7rem; color: var(--ink-soft);
+    overflow-x: auto; white-space: nowrap;
+  }
+  .stage .gap-note {
+    margin-top: 9px; padding: 8px 10px;
+    border-left: 3px solid var(--accent-gap);
+    background: var(--ground); border-radius: 0 6px 6px 0;
+    font-size: .82rem; color: var(--ink-soft);
+  }
+  .stage .gap-note b { color: var(--accent-gap); }
+
+  /* ── cross mapping ─────────────────────────────────── */
+  .map { margin-top: 40px; }
+  .map h2 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 1.5rem; font-weight: 560; margin: 0 0 6px;
+    color: var(--accent-shared); text-wrap: balance;
+  }
+  .map .sub { color: var(--ink-soft); margin: 0 0 18px; max-width: 72ch; }
+  .maprow {
+    display: grid; grid-template-columns: 1fr 1fr 1.4fr 64px;
+    gap: 10px; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+    font-size: .88rem;
+  }
+  .maprow:last-child { border-bottom: none; }
+  .maprow.head {
+    font-family: "IBM Plex Mono", monospace; font-size: .66rem;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
+    border-bottom: 2px solid var(--line);
+  }
+  .maprow .l { font-weight: 600; color: var(--accent-left); }
+  .maprow .r { font-weight: 600; color: var(--accent-right); }
+  .maprow .prod { color: var(--ink-soft); }
+  .maprow .flag { font-family: "IBM Plex Mono", monospace; font-size: .72rem; text-align: right; }
+  .maprow .flag.yes { color: var(--accent-shared); }
+  .maprow .flag.weak{ color: var(--accent-gap); }
+
+  .pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .66rem; letter-spacing: .06em;
+    padding: 3px 9px; border-radius: 20px;
+    border: 1px solid var(--line); color: var(--ink-soft);
+    margin: 0 4px 4px 0;
+  }
+  .pill.left   { border-color: var(--accent-left); color: var(--accent-left); }
+  .pill.right  { border-color: var(--accent-right); color: var(--accent-right); }
+  .pill.shared { border-color: var(--accent-shared); color: var(--accent-shared); }
+  .pill.gap    { border-color: var(--accent-gap); color: var(--accent-gap); }
+
+  /* ── verdict ──────────────────────────────────────── */
+  .verdict {
+    margin-top: 56px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 28px 30px;
+    background: var(--ground-2);
+  }
+  .verdict h2 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 1.5rem; font-weight: 560; margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  .verdict p { color: var(--ink-soft); margin: 0 0 10px; max-width: 74ch; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict em { color: var(--accent-shared); font-style: normal; font-weight: 600; }
+  .verdict .em-red { color: var(--accent-gap); font-style: normal; font-weight: 600; }
+</style>
+
+<header class="wrap">
+  <p class="kicker">生产级全栈工程 · Harness Engineering · 研发编排</p>
+  <h1>两条管线，一套逻辑</h1>
+  <p class="lede">研发场景怎么编排？左列是研发生命周期 S0→S5，右列是 Agent 执行流水线 ①→⑤ —— 它们不是两条独立的线，而是同一套 SSD 流水线按「阶段」和「Agent 动作」切的两个视角。图里三处「名不副实」的角色/流程，仓库里没有对应实体。</p>
+  <div class="meta-row">
+    <span><b>取证基线</b> SSD-全链路方法论 + 四技能</span>
+    <span><b>样本</b> 各专项 requirements-specs + template</span>
+    <span><b>日期</b> 2026-08-28</span>
+    <span><b>只读</b> 未改文件 · 未触发生产</span>
+  </div>
+  <div class="legend">
+    <span class="legend-item"><span class="swatch left"></span>左列 · 研发生命周期 S0→S5</span>
+    <span class="legend-item"><span class="swatch right"></span>右列 · Agent 流水线 ①→⑤</span>
+    <span class="legend-item"><span class="swatch shared"></span>一套逻辑 · 共享产物</span>
+    <span class="legend-item"><span class="swatch gap"></span>名不副实 · 想象</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- AXIS: shared logic -->
+  <section class="axis">
+    <span class="node">一套逻辑</span>
+    <h2>SSD-全链路方法论 —— 统一轴</h2>
+    <p>上一层的产物 = 下一层的唯一输入 · 每层可被独立会话接手 · 关键结论全部落盘。四技能串联：<code>blindspot-audit</code> → <code>requirements-matrix-generator</code> → <code>spec-dev</code> → <code>loop-prompt-generator</code>。</p>
+  </section>
+
+  <!-- DUAL COLUMNS -->
+  <section class="dual">
+
+    <!-- LEFT: S0-S5 -->
+    <div class="col">
+      <div class="col-head left">左列 · 研发生命周期 <span>S0→S5</span></div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">S0</span><h3 class="sname left">需求明确</h3><span class="verd rich">丰富</span></div>
+        <p class="desc">每专项独立「多维盲区审计 + 对抗证伪 + <b>决策台账 D-x</b>」，shenji 三件套（现状总览/迭代指南/勘误）。全仓最成熟一环。</p>
+        <span class="path mono">01-优化课程开始/00-现状总览与迭代指南.md · _falsification/F1-P0裁定.md</span>
+      </div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">S1</span><h3 class="sname left">需求准入</h3><span class="verd rich">丰富</span></div>
+        <p class="desc">requirements 需求文档（PRD 等价物）+ spec 四件套 + <b>FPF 审查 + Owner 批复台账</b>。</p>
+        <span class="path mono">requirements-specs/…/OPS-901-…/{01,02,03,04}.md</span>
+        <div class="gap-note"><b>想象</b>：「产品经理+交互师 agent 出 PRD+Figma」——无 Figma/交互稿，无 PM/交互师分工，被「HTML 蓝图 + 视觉门禁」替代。</div>
+      </div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">S2</span><h3 class="sname left">方案设计</h3><span class="verd rich">丰富</span></div>
+        <p class="desc">02-design（HLD）+ 03-tasks（任务卡，工作量 S/M/L + 追溯矩阵）+ <b>10 层分层</b> + thread-orchestrator 依赖编排脚本。</p>
+        <span class="path mono">02-design.md · 03-tasks.md · _skills/thread-orchestrator/SKILL.md</span>
+      </div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">S3</span><h3 class="sname left">研发</h3><span class="verd rich">丰富</span></div>
+        <p class="desc">1100+ ts/tsx + 25 migration + 84 scripts + 依赖顺序 runbook + 前后端 10 层切分。</p>
+        <span class="path mono">.github/workflows/ci.yml · scripts/deploy-prod.sh · 012/MASTER-LAUNCH-RUNBOOK.md</span>
+        <div class="gap-note"><b>想象</b>：「端到端自动化 CI/CD」——CI 自述「Minimal CI gate…No release step」，CD 靠 deploy-prod.sh + 人工 Vercel。</div>
+      </div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">S4</span><h3 class="sname left">集成验证</h3><span class="verd rich">丰富</span></div>
+        <p class="desc">200+ 单测 + QA 电池 + 接缝契约测试 + <b>readiness 页面探针</b>（每日 cron，401/503/5xx 显红）。</p>
+        <span class="path mono">.github/workflows/readiness-probe.yml · src/**/__tests__/ · qa*-battery.ts</span>
+      </div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">S5</span><h3 class="sname left">发布+复盘</h3><span class="verd exists">存在</span></div>
+        <p class="desc">灰度翻闸 runbook + 回滚 SQL + 四象限验证终报真实；但<b>复盘分散</b>，无集中 postmortem 落盘区。</p>
+        <span class="path mono">08-付费墙多象限验证/00-四象限验证终报 · scripts/db601-rollback.sql</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: ①-⑤ -->
+    <div class="col">
+      <div class="col-head right">右列 · Agent 流水线 <span>①→⑤</span></div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">①</span><h3 class="sname right">项目分析</h3><span class="verd rich">成熟</span></div>
+        <p class="desc">四级索引（AGENTS→PROJECT→_skills/INDEX→MEMORY）+ env 契约三件套（declaration/check/CI）。</p>
+        <span class="path mono">template/src/config/required-env.ts · scripts/env-contract-check.ts</span>
+      </div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">②</span><h3 class="sname right">需求澄清</h3><span class="verd rich">成熟</span></div>
+        <p class="desc">盲区审计 + 五条红线 + <b>入口/出口双门禁</b>（入口=确认门，出口=人审+三重机检门）+ 30+ gate/proof 脚本。</p>
+        <span class="path mono">AGENTS.md §2 · scripts/brand-wording-gate.mjs · 20+ *-proof.ts</span>
+      </div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">③</span><h3 class="sname right">任务拆分</h3><span class="verd rich">成熟</span></div>
+        <p class="desc">553 个 03-tasks + 528 个 04-fpf-review + 44 个 00-INDEX + 19 份契约。<b>实施串行、验证并行</b>。</p>
+        <span class="path mono">_skills/thread-orchestrator/SKILL.md · 553× 03-tasks.md</span>
+      </div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">④</span><h3 class="sname right">代码编写</h3><span class="verd rich">测试成熟</span></div>
+        <p class="desc">204 个 test 文件 + 12 个 __tests__ 目录 + CI 全覆盖，测试五步里最成熟。</p>
+        <span class="path mono">.github/workflows/ci.yml · 204× *.test.ts</span>
+        <div class="gap-note"><b>想象</b>：「三类 CR（规范/业务/安全）」——无独立分工，被单一「对抗验证」机制覆盖三类关注点。</div>
+      </div>
+
+      <div class="stage">
+        <div class="top"><span class="snum">⑤</span><h3 class="sname right">测试</h3><span class="verd rich">成熟</span></div>
+        <p class="desc">内容人工审（284 题清单 + 8 factcheck + 红旗扫描）+ <b>意图报告兜底</b>（32 份 EXECUTION-REPORT 头号结论）。</p>
+        <span class="path mono">01-优化课程开始/内容人审包 · content/_fact_check/ · 32× EXECUTION-REPORT</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CROSS MAPPING -->
+  <section class="map">
+    <h2>两列如何对应「一套逻辑」</h2>
+    <p class="sub">S0↔②、S2↔③、S4↔④/⑤ 的对应非常干净——同一批产物按「阶段」和「Agent 动作」切的两个视角。唯一对不上的是 S5↔⑤（右列⑤是内容人审，不是发布动作）。</p>
+
+    <div class="maprow head"><span>左列 阶段</span><span>右列 步骤</span><span>共享产物</span><span>对应</span></div>
+    <div class="maprow"><span class="l">S0 需求明确</span><span class="r">② 澄清</span><span class="prod">盲区审计 + 证伪 + 台账</span><span class="flag yes">真实</span></div>
+    <div class="maprow"><span class="l">S1 需求准入</span><span class="r">② 双门禁</span><span class="prod">requirements + spec + FPF</span><span class="flag yes">真实·缺Figma</span></div>
+    <div class="maprow"><span class="l">S2 方案设计</span><span class="r">③ 拆分</span><span class="prod">02-design + 03-tasks + 分层</span><span class="flag yes">真实</span></div>
+    <div class="maprow"><span class="l">S3 研发</span><span class="r">④ 实现</span><span class="prod">代码 + 依赖顺序 + 切分</span><span class="flag yes">真实·CD存疑</span></div>
+    <div class="maprow"><span class="l">S4 集成验证</span><span class="r">④/⑤ 测试</span><span class="prod">200+ 测试 + readiness 探针</span><span class="flag yes">真实</span></div>
+    <div class="maprow"><span class="l">S5 发布+复盘</span><span class="r">⑤ 报告</span><span class="prod">runbook + 回滚 + 复盘</span><span class="flag weak">弱对应</span></div>
+  </section>
+
+  <!-- VERDICT -->
+  <section class="verdict">
+    <h2>这套编排强在哪、图在哪缺</h2>
+    <p>研发编排的<b>机制是真实且强的</b>——S0→S5 每阶段都有扎实产物，①→⑤ 每步都有成熟落地，且两列共享同一套 SSD 逻辑。<em>不是两条管线，是同一套流水线的两个切片。</em></p>
+    <p>真正的短板有两处：一是三处「图写先进于现实」——<span class="em-red">PRD+Figma+PM/交互师 agent、三类 CR、完整 CD</span>，照着图干活的人会以为有那些实体；二是没有一张「两条管线一套逻辑」的总编排图，把左列生命周期、右列 Agent 步骤、以及共享的任务卡/门禁/报告串成一张可读全景——机制在，图不在。</p>
+    <p style="margin-top:14px">
+      <span class="pill left">S0-S5 真实</span>
+      <span class="pill right">①-⑤ 成熟</span>
+      <span class="pill shared">一套逻辑 · SSD</span>
+      <span class="pill gap">3 处想象</span>
+    </p>
+  </section>
+
+</main>

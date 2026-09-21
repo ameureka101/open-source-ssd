@@ -1,0 +1,35 @@
+# LANDING PAGE BLUEPRINT PROMPT TEMPLATE (DESKTOP)
+
+Use the Global Refinement Rules (00-global-refinement-rules.txt).
+
+Page: High-Converting Technical Landing Page
+Target Viewport: Desktop 1440px width
+
+Section 1: Global Navigation
+- Minimalist sticky navbar with 1px border.
+- Left: Brand icon + [Product Name].
+- Center links: Features, Architecture, Documentation, Showcase.
+- Right: Single primary CTA button: "Get Started" (Warm Terracotta background, high contrast text).
+
+Section 2: Hero Section
+- Badge: Monospace, small border pill: "[STATUS: PRODUCTION READY v1.0]".
+- Main Heading (H1): Bold, authoritative, concise statement (e.g., "Deterministic Agentic Workflows for Fullstack Applications").
+- Subtitle: Clear value proposition explaining how it solves silent failures and context overflow.
+- Dual Action Buttons:
+  * Primary: "Clone Starter Kit" (Accent colored).
+  * Secondary: "Read Engineering Whitepaper" (1px outline with subtle hover).
+- Visual Asset Showcase: A sleek high-density dark UI panel showing a terminal gate check running with [PASS] indicators.
+
+Section 3: Metric Proof Grid (3 Columns)
+- Metric 1: "11.23x" - Context compression ratio via Frontmatter.
+- Metric 2: "100%" - Closeout contract verification.
+- Metric 3: "Fail-Closed" - Zero silent failure architecture.
+- Visual: Clean cards with fine 1px borders, subtle grid background.
+
+Section 4: Technical Deep-Dive (Two-Column Layout)
+- Left: Architectural flowchart showing the 4-stage pipeline.
+- Right: Code block showcasing TypeScript type-level guards.
+
+Section 5: Final CTA & Global Footer
+- Minimalist banner prompting developers to start building.
+- Standard compliant footer with privacy, terms, and copyright.

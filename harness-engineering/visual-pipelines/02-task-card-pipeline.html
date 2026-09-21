@@ -1,0 +1,500 @@
+<title>任务卡拆解流水线</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ground: #f2eee4;
+    --ground-2: #e9e4d6;
+    --ink: #201f1b;
+    --ink-soft: #57544a;
+    --ink-faint: #85816f;
+    --line: #d3cdbb;
+    --accent-ops: #2f5e4e;      /* ops / guardrail — "pass" green */
+    --accent-prod: #b3432a;     /* production red-line — do not touch */
+    --accent-state: #3d5a82;    /* contract / disk truth — slate blue */
+    --accent-meta: #8a6d2f;     /* meta / skill — amber */
+    --card: #faf8f2;
+    --card-ink: #2a2924;
+    --code-bg: #f0ebde;
+    --shadow: 0 1px 2px rgba(32,31,27,.06), 0 6px 20px -12px rgba(32,31,27,.25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #161613;
+      --ground-2: #1d1d19;
+      --ink: #ece9dd;
+      --ink-soft: #b3ae9c;
+      --ink-faint: #7c776a;
+      --line: #38362e;
+      --accent-ops: #63b395;
+      --accent-prod: #e07a58;
+      --accent-state: #7d9cc8;
+      --accent-meta: #c9a855;
+      --card: #201f1a;
+      --card-ink: #efece0;
+      --code-bg: #26251f;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #161613;
+    --ground-2: #1d1d19;
+    --ink: #ece9dd;
+    --ink-soft: #b3ae9c;
+    --ink-faint: #7c776a;
+    --line: #38362e;
+    --accent-ops: #63b395;
+    --accent-prod: #e07a58;
+    --accent-state: #7d9cc8;
+    --accent-meta: #c9a855;
+    --card: #201f1a;
+    --card-ink: #efece0;
+    --code-bg: #26251f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 28px 96px; }
+  a { color: inherit; }
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .82em;
+  }
+  .mono { font-size: .8em; }
+
+  /* ── header ─────────────────────────────────────────── */
+  header {
+    padding: 56px 0 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 560;
+    font-size: clamp(2.1rem, 5vw, 3.3rem);
+    line-height: 1.05;
+    letter-spacing: -.01em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  .lede {
+    max-width: 66ch;
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0 0 28px;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .76rem;
+    color: var(--ink-faint);
+    margin-bottom: 26px;
+  }
+  .meta-row b { color: var(--ink-soft); font-weight: 600; }
+
+  /* ── legend ─────────────────────────────────────────── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 24px;
+    padding: 16px 0 14px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 8px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .84rem;
+    color: var(--ink-soft);
+  }
+  .swatch {
+    width: 12px; height: 12px; border-radius: 3px; flex: none;
+  }
+  .swatch.ops  { background: var(--accent-ops); }
+  .swatch.prod { background: var(--accent-prod); }
+  .swatch.state{ background: var(--accent-state); }
+  .swatch.meta { background: var(--accent-meta); }
+
+  /* ── pipeline spine ─────────────────────────────────── */
+  .pipeline { margin-top: 40px; position: relative; }
+  .stage { position: relative; margin-bottom: 14px; }
+  .flow {
+    position: relative;
+    padding-left: 30px;
+  }
+  .flow::before {
+    content: "";
+    position: absolute;
+    left: 10px; top: 6px; bottom: -14px;
+    width: 2px;
+    background: linear-gradient(var(--line), var(--line));
+  }
+  .stage:last-child .flow::before { display: none; }
+  .node-dot {
+    position: absolute;
+    left: 0; top: 8px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem;
+    color: var(--ink-faint);
+    z-index: 1;
+  }
+  .stage[data-accent="ops"] .node-dot   { border-color: var(--accent-ops); color: var(--accent-ops); }
+  .stage[data-accent="state"] .node-dot { border-color: var(--accent-state); color: var(--accent-state); }
+  .stage[data-accent="meta"] .node-dot  { border-color: var(--accent-meta); color: var(--accent-meta); }
+  .stage[data-accent="prod"] .node-dot  { border-color: var(--accent-prod); color: var(--accent-prod); }
+
+  .card {
+    background: var(--card);
+    color: var(--card-ink);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+  }
+  .stage-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .stage-num {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: .86rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--ink-faint);
+  }
+  .stage-title {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 1.42rem;
+    font-weight: 560;
+    letter-spacing: -.005em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .stage-role {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-left: auto;
+  }
+  .stage-desc {
+    color: var(--ink-soft);
+    font-size: .98rem;
+    margin: 6px 0 16px;
+    max-width: 64ch;
+  }
+  .path {
+    display: block;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: .74rem;
+    color: var(--ink-soft);
+    overflow-x: auto;
+    white-space: nowrap;
+    margin-bottom: 14px;
+  }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+  .col { background: var(--ground); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .col-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+  }
+  .col ul { margin: 0; padding-left: 18px; }
+  .col li { font-size: .9rem; color: var(--ink-soft); margin: 3px 0; }
+  .col li b { color: var(--ink); font-weight: 600; }
+
+  .pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem;
+    letter-spacing: .06em;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    margin: 0 4px 4px 0;
+  }
+  .pill.ops   { border-color: var(--accent-ops); color: var(--accent-ops); }
+  .pill.prod  { border-color: var(--accent-prod); color: var(--accent-prod); }
+  .pill.state { border-color: var(--accent-state); color: var(--accent-state); }
+  .pill.meta  { border-color: var(--accent-meta); color: var(--accent-meta); }
+
+  .note {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-left: 3px solid var(--accent-prod);
+    background: var(--ground);
+    border-radius: 0 8px 8px 0;
+    font-size: .9rem;
+    color: var(--ink-soft);
+  }
+  .note b { color: var(--ink); }
+
+  /* ── verdict ───────────────────────────────────────── */
+  .verdict {
+    margin-top: 56px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 28px 30px;
+    background: var(--ground-2);
+  }
+  .verdict h2 {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 560;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  .verdict p { color: var(--ink-soft); margin: 0 0 10px; max-width: 70ch; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict em { color: var(--accent-ops); font-style: normal; font-weight: 600; }
+</style>
+
+<header class="wrap">
+  <p class="kicker">生产级全栈工程 · Harness Engineering · 执行控制面</p>
+  <h1>任务卡拆解流水线</h1>
+  <p class="lede">一个「大任务」如何被拆成可机械守门、可断点续跑的任务卡 —— 以 Wave&nbsp;1&nbsp;·&nbsp;OPS-901 的真实文件为底，把整条链路一次看清。</p>
+  <div class="meta-row">
+    <span><b>取证基线</b> 06-24 小时干geo-seo 专项</span>
+    <span><b>样本</b> OPS-901 GA4 服务端事件校验守卫</span>
+    <span><b>日期</b> 2026-08-28</span>
+    <span><b>只读</b> 未改文件 · 未触发生产</span>
+  </div>
+  <div class="legend">
+    <span class="legend-item"><span class="swatch meta"></span>元层 · 技能源头</span>
+    <span class="legend-item"><span class="swatch ops"></span>执行层 · 收口/守门</span>
+    <span class="legend-item"><span class="swatch state"></span>状态层 · 磁盘真相</span>
+    <span class="legend-item"><span class="swatch prod"></span>红线层 · 生产动作</span>
+  </div>
+</header>
+
+<main class="wrap pipeline">
+
+  <!-- STAGE 0 -->
+  <section class="stage" data-accent="meta">
+    <div class="flow">
+      <span class="node-dot">0</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 0 站</span>
+          <h2 class="stage-title">技能源头：loop-prompt-generator</h2>
+          <span class="stage-role">元层 · 唯一发生器</span>
+        </div>
+        <p class="stage-desc">所有长跑拆卡的同一来源。它把「让 AI 一直跑把 X 做完」翻译成一份可中断恢复、有确定性停止条件的 loop 提示词。停止条件三要素、九块结构、契约文件模式都从这里长出。</p>
+        <span class="path mono">_skills/loop-prompt-generator/SKILL.md · v1.3</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">停止条件三要素</p>
+            <ul>
+              <li><b>完成判据</b> — 磁盘可验证，字段名对齐既有模板</li>
+              <li><b>质量门</b> — 机械可执行 + 阈值明确</li>
+              <li><b>上限阀</b> — 显式轮次上限，命中≠失败</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">九块结构</p>
+            <ul>
+              <li>目标范围 · 队列真相源 · 单件循环</li>
+              <li>质量门 · 决策政策 · 中断恢复</li>
+              <li>停止条件 · 禁止事项 · 终报格式</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 1 -->
+  <section class="stage" data-accent="ops">
+    <div class="flow">
+      <span class="node-dot">1</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 1 站</span>
+          <h2 class="stage-title">目标信封：GOAL</h2>
+          <span class="stage-role">信封 · 评估模型守门</span>
+        </div>
+        <p class="stage-desc">一个极薄的「信封」，只装 <span class="mono">/goal</span> 指针 + 停止条件 + 红线摘要 + 上限阀。因 <span class="mono">/goal</span> 有 4000 字符硬上限，九块全文落盘到契约文件，这里只留让评估模型能机械判定的东西。</p>
+        <span class="path mono">站点优化-ongoing/06-24 小时干geo-seo/GOAL-wave1-ops901-2026-07-28.md</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">信封里有什么</p>
+            <ul>
+              <li><b>指针</b> — 契约文件绝对路径</li>
+              <li><b>上限阀</b> — <span class="mono">stop after 80 turns</span></li>
+              <li><b>续跑指令</b> — 上限命中重发本 goal，从磁盘续跑</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">完成判定（磁盘事实）</p>
+            <ul>
+              <li><b>(i)</b> 收口记录 <span class="mono">状态判定</span> = PASS / 已修复</li>
+              <li><b>(ii)</b> Step 6.0 · 验证证据 · 对抗验证 实测</li>
+              <li><b>(iii)</b> 00-INDEX 该 spec 行已更新</li>
+              <li><b>(iv)</b> EXECUTION-REPORT 已存在</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note">
+          <b>红线回显。</b> 违反即不可逆的动作（push / 部署 / 生产写 / <span class="mono">gh workflow run</span> / flag 翻转 / 切分支）<em>直接写进 /goal 常驻</em>，否则 compact 后会被丢掉。生产动作必须写成精确请求并等待 Owner，不得伪装成 deferred。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 2 -->
+  <section class="stage" data-accent="state">
+    <div class="flow">
+      <span class="node-dot">2</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 2 站</span>
+          <h2 class="stage-title">执行契约：EXECUTION-CONTRACT</h2>
+          <span class="stage-role">状态层 · 磁盘真相源</span>
+        </div>
+        <p class="stage-desc">九块全文的落盘处。开工与每次 compact / 中断恢复的第一步都是完整重读它。它、短 goal、终报都明确<b>不是实施对象</b>——防把流程文档当代码改。</p>
+        <span class="path mono">站点优化-ongoing/06-24 小时干geo-seo/EXECUTION-CONTRACT-wave1-ops901-2026-07-28.md</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">九块骨架</p>
+            <ul>
+              <li>Goal / Scope · Queue Truth · 单件循环</li>
+              <li>质量门 · 决策政策 · 恢复协议</li>
+              <li>停止条件 · 非协商边界 · 终报格式</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">共享底座（跨专项）</p>
+            <ul>
+              <li><b>013</b> — 逐波一份契约（wave-a ~ wave-f）</li>
+              <li><b>012</b> — wave0 契约一份</li>
+              <li><b>06</b> — 契约 + 独有 GOAL 信封（加严）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 3 -->
+  <section class="stage" data-accent="state">
+    <div class="flow">
+      <span class="node-dot">3</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 3 站</span>
+          <h2 class="stage-title">任务卡：03-tasks.md</h2>
+          <span class="stage-role">拆卡落点 · 4 件套之一</span>
+        </div>
+        <p class="stage-desc">大任务真正被「拆开」的地方。每个 spec 包四件套（01-requirements / 02-design / 03-tasks / 04-fpf-review），任务卡把 spec 拆成可分组的实施单元，每张卡带验收标准与依赖。</p>
+        <span class="path mono">requirements-specs/80-observability/OPS-901-…/03-tasks.md</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">任务卡字段</p>
+            <ul>
+              <li><b>Description</b> — 做什么</li>
+              <li><b>Files to modify</b> — 改哪些文件</li>
+              <li><b>Acceptance Criteria</b> — 怎么算过</li>
+              <li><b>Validates / Dependencies</b> — 追溯与先后</li>
+              <li><b>Effort</b> — S/M 工时估算</li>
+              <li><b>Status</b> — 当前态</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">OPS-901 任务分组</p>
+            <ul>
+              <li><b>G0</b> 前提复核 — Step 6.0 重验 19 锚点</li>
+              <li><b>G1</b> 验证脚本 · <b>G2</b> 守卫升级</li>
+              <li><b>G3</b> CI 守卫 · <b>G4</b> 执行证据与回归门</li>
+              <li><b>G5</b> Owner 侧（Task 5.1 默认交付）</li>
+              <li>12 任务 · 33 行双向追溯矩阵 · ~20–40h</li>
+            </ul>
+          </div>
+        </div>
+        <p style="margin:14px 0 0;font-size:.9rem;color:var(--ink-soft)">
+          <span class="pill ops">收口记录</span> 尾部 <span class="mono">## 收口记录</span> 的 <span class="mono">状态判定</span> 五态词汇（PASS / PARTIAL / FAIL / spec-premise-stale / deferred-non-blocking）是 <span class="mono">/goal</span> 机械守门的字段。<b>铁律：无收口记录 = 未收口。</b>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 4 -->
+  <section class="stage" data-accent="prod">
+    <div class="flow">
+      <span class="node-dot">4</span>
+      <div class="card">
+        <div class="stage-head">
+          <span class="stage-num">第 4 站</span>
+          <h2 class="stage-title">收口报告：EXECUTION-REPORT</h2>
+          <span class="stage-role">红线层 · 精确 Owner 请求</span>
+        </div>
+        <p class="stage-desc">整条链路的终点。生产验证永远不放进行自主范围——即使代码本地 PASS，部署 / 发哨兵 / workflow dispatch 都写成「待 Owner 单独批准」，并附副作用、证据、回滚，绝不伪装成 deferred。</p>
+        <span class="path mono">站点优化-ongoing/06-24 小时干geo-seo/EXECUTION-REPORT-wave1-ops901-2026-07-28.md</span>
+        <div class="cols">
+          <div class="col">
+            <p class="col-label">报告结构</p>
+            <ul>
+              <li>Scope / Step 6.0 复核</li>
+              <li>逐任务结果表</li>
+              <li>质量证据表（命令 + exit code）</li>
+              <li>对抗验证</li>
+            </ul>
+          </div>
+          <div class="col">
+            <p class="col-label">两条收口保证</p>
+            <ul>
+              <li><b>Exact Owner Production Request</b> — 4 项精确请求</li>
+              <li><b>Red-Line Self-Audit</b> — 逐条声明未触红线</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VERDICT -->
+  <section class="verdict">
+    <h2>这条流水线成熟在哪</h2>
+    <p>四层全部用真实文件跑通：<em>GOAL 信封</em>只有 06 用足，契约 + 任务卡 + 报告三层则<em>全专项共用</em>（013 已逐波一份契约）。差距不在机制，而在 GOAL 信封没沉淀成模板，轻量专项仍靠文档目录自然分层。</p>
+    <p>守门是机械的 —— 停止条件字段名对齐磁盘，评估模型能判定；上限命中 ≠ 失败，重发同一 goal 从磁盘续跑。生产动作永远不进波次自主范围。</p>
+    <p style="margin-top:14px">
+      <span class="pill meta">GOAL 信封仅 06 用足</span>
+      <span class="pill ops">契约/任务卡/报告全专项共用</span>
+      <span class="pill state">锚点重读表用行号，会漂移</span>
+      <span class="pill prod">进度双写，靠纪律对齐</span>
+    </p>
+  </section>
+
+</main>

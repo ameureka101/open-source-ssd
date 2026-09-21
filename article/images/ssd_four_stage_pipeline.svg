@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520">
+  <defs>
+    <!-- Background Grid -->
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#1C1F24" />
+    </pattern>
+
+    <!-- Gradients -->
+    <linearGradient id="terracottaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D68160" />
+      <stop offset="100%" stop-color="#F4B49B" />
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3D85C6" />
+      <stop offset="100%" stop-color="#6FA8DC" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4E9F3D" />
+      <stop offset="100%" stop-color="#A5D6A7" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glowTerracotta" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="glowBlue" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="100%" height="100%" fill="#0E1012" />
+  <rect width="100%" height="100%" fill="url(#grid)" />
+
+  <!-- Header Section -->
+  <text x="40" y="42" fill="#6A737D" font-family="monospace" font-size="12">HARNESS ENGINEERING // SPEC-DRIVEN DEVELOPMENT PIPELINE</text>
+  <text x="40" y="68" fill="#D68160" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" font-size="22">四阶段规格驱动流水线架构全景</text>
+
+  <!-- ================= PIPELINE STAGES (4 CARDS) ================= -->
+
+  <!-- Stage 1: Blindspot Audit -->
+  <g transform="translate(40, 110)">
+    <rect width="185" height="340" rx="10" fill="#15181D" stroke="#2A303C" stroke-width="1.5" />
+    <rect width="185" height="32" rx="6" fill="#1C212A" />
+    <circle cx="16" cy="16" r="4" fill="#D68160" filter="url(#glowTerracotta)" />
+    <text x="28" y="21" fill="#D68160" font-family="monospace" font-size="11" font-weight="bold">PHASE 01</text>
+    
+    <text x="16" y="60" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">盲区多维审计</text>
+    <text x="16" y="80" fill="#8C95A0" font-family="monospace" font-size="10">blindspot-audit</text>
+
+    <!-- Content Items -->
+    <rect x="12" y="100" width="161" height="52" rx="6" fill="#0E1012" stroke="#1F242C" />
+    <text x="20" y="120" fill="#6A737D" font-family="monospace" font-size="9">TARGET SCOPE:</text>
+    <text x="20" y="138" fill="#C9D1D9" font-family="system-ui, sans-serif" font-size="11">代码、配置与文档</text>
+
+    <rect x="12" y="162" width="161" height="52" rx="6" fill="#0E1012" stroke="#1F242C" />
+    <text x="20" y="182" fill="#6A737D" font-family="monospace" font-size="9">EXECUTION RULE:</text>
+    <text x="20" y="200" fill="#D68160" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">8+N 正交切片 / 只查不改</text>
+
+    <rect x="12" y="224" width="161" height="85" rx="6" fill="#1A1513" stroke="#D68160" stroke-width="1" />
+    <text x="20" y="244" fill="#F4B49B" font-family="monospace" font-size="9" font-weight="bold">PRIMARY DELIVERABLE:</text>
+    <text x="20" y="262" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="11">Markdown 审计单</text>
+    <text x="20" y="280" fill="#8C95A0" font-family="monospace" font-size="10">统一 Frontmatter 块</text>
+    <text x="20" y="296" fill="#D68160" font-family="monospace" font-size="9">11.23x 上下文压缩</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <g transform="translate(225, 270)">
+    <path d="M 5 0 L 25 0" stroke="#3D85C6" stroke-width="2" stroke-dasharray="4 2" />
+    <path d="M 23 -4 L 29 0 L 23 4" fill="none" stroke="#3D85C6" stroke-width="2" />
+  </g>
+
+  <!-- Stage 2: Requirements Matrix -->
+  <g transform="translate(255, 110)">
+    <rect width="185" height="340" rx="10" fill="#15181D" stroke="#2A303C" stroke-width="1.5" />
+    <rect width="185" height="32" rx="6" fill="#1C212A" />
+    <circle cx="16" cy="16" r="4" fill="#3D85C6" filter="url(#glowBlue)" />
+    <text x="28" y="21" fill="#3D85C6" font-family="monospace" font-size="11" font-weight="bold">PHASE 02</text>
+    
+    <text x="16" y="60" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">需求矩阵生成</text>
+    <text x="16" y="80" fill="#8C95A0" font-family="monospace" font-size="10">matrix-generator</text>
+
+    <!-- Content Items -->
+    <rect x="12" y="100" width="161" height="52" rx="6" fill="#0E1012" stroke="#1F242C" />
+    <text x="20" y="120" fill="#6A737D" font-family="monospace" font-size="9">CORE INPUT:</text>
+    <text x="20" y="138" fill="#C9D1D9" font-family="system-ui, sans-serif" font-size="11">审计 findings 摘要</text>
+
+    <rect x="12" y="162" width="161" height="52" rx="6" fill="#0E1012" stroke="#1F242C" />
+    <text x="20" y="182" fill="#6A737D" font-family="monospace" font-size="9">TRIAGE ACTION:</text>
+    <text x="20" y="200" fill="#3D85C6" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">去重定级 / 显式依赖</text>
+
+    <rect x="12" y="224" width="161" height="85" rx="6" fill="#121820" stroke="#3D85C6" stroke-width="1" />
+    <text x="20" y="244" fill="#6FA8DC" font-family="monospace" font-size="9" font-weight="bold">PRIMARY DELIVERABLE:</text>
+    <text x="20" y="262" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="11">00-INDEX.md 对账表</text>
+    <text x="20" y="280" fill="#8C95A0" font-family="monospace" font-size="10">四件套 Spec ID 队列</text>
+    <text x="20" y="296" fill="#3D85C6" font-family="monospace" font-size="9">阻断项前置锁定</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <g transform="translate(440, 270)">
+    <path d="M 5 0 L 25 0" stroke="#3D85C6" stroke-width="2" stroke-dasharray="4 2" />
+    <path d="M 23 -4 L 29 0 L 23 4" fill="none" stroke="#3D85C6" stroke-width="2" />
+  </g>
+
+  <!-- Stage 3: Execution Loop -->
+  <g transform="translate(470, 110)">
+    <rect width="185" height="340" rx="10" fill="#15181D" stroke="#2A303C" stroke-width="1.5" />
+    <rect width="185" height="32" rx="6" fill="#1C212A" />
+    <circle cx="16" cy="16" r="4" fill="#D68160" filter="url(#glowTerracotta)" />
+    <text x="28" y="21" fill="#D68160" font-family="monospace" font-size="11" font-weight="bold">PHASE 03</text>
+    
+    <text x="16" y="60" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">循环闭环实施</text>
+    <text x="16" y="80" fill="#8C95A0" font-family="monospace" font-size="10">spec-dev / loop-prompt</text>
+
+    <!-- Content Items -->
+    <rect x="12" y="100" width="161" height="52" rx="6" fill="#0E1012" stroke="#1F242C" />
+    <text x="20" y="120" fill="#6A737D" font-family="monospace" font-size="9">DISCIPLINE:</text>
+    <text x="20" y="138" fill="#C9D1D9" font-family="system-ui, sans-serif" font-size="11">禁止基于对话完成</text>
+
+    <rect x="12" y="162" width="161" height="52" rx="6" fill="#0E1012" stroke="#1F242C" />
+    <text x="20" y="182" fill="#6A737D" font-family="monospace" font-size="9">GATE CRITERIA:</text>
+    <text x="20" y="200" fill="#D68160" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">停止条件四要素</text>
+
+    <rect x="12" y="224" width="161" height="85" rx="6" fill="#1A1513" stroke="#D68160" stroke-width="1" />
+    <text x="20" y="244" fill="#F4B49B" font-family="monospace" font-size="9" font-weight="bold">PRIMARY DELIVERABLE:</text>
+    <text x="20" y="262" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="11">代码 Git Commit</text>
+    <text x="20" y="280" fill="#8C95A0" font-family="monospace" font-size="10">状态判定五态实值</text>
+    <text x="20" y="296" fill="#D68160" font-family="monospace" font-size="9">100% 收口记录覆盖</text>
+  </g>
+
+  <!-- Arrow 3 -> 4 -->
+  <g transform="translate(655, 270)">
+    <path d="M 5 0 L 25 0" stroke="#4E9F3D" stroke-width="2" stroke-dasharray="4 2" />
+    <path d="M 23 -4 L 29 0 L 23 4" fill="none" stroke="#4E9F3D" stroke-width="2" />
+  </g>
+
+  <!-- Stage 4: Proof Gates -->
+  <g transform="translate(685, 110)">
+    <rect width="175" height="340" rx="10" fill="#15181D" stroke="#2A303C" stroke-width="1.5" />
+    <rect width="175" height="32" rx="6" fill="#1C212A" />
+    <circle cx="16" cy="16" r="4" fill="#A5D6A7" />
+    <text x="28" y="21" fill="#A5D6A7" font-family="monospace" font-size="11" font-weight="bold">PHASE 04</text>
+    
+    <text x="16" y="60" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">对抗取证收口</text>
+    <text x="16" y="80" fill="#8C95A0" font-family="monospace" font-size="10">automated-proof-gates</text>
+
+    <!-- Content Items -->
+    <rect x="12" y="100" width="151" height="52" rx="6" fill="#0E1012" stroke="#1F242C" />
+    <text x="20" y="120" fill="#6A737D" font-family="monospace" font-size="9">HARD GUARDS:</text>
+    <text x="20" y="138" fill="#C9D1D9" font-family="system-ui, sans-serif" font-size="11">类型系统硬签名</text>
+
+    <rect x="12" y="162" width="151" height="52" rx="6" fill="#0E1012" stroke="#1F242C" />
+    <text x="20" y="182" fill="#6A737D" font-family="monospace" font-size="9">META CHECK:</text>
+    <text x="20" y="200" fill="#A5D6A7" font-family="system-ui, sans-serif" font-size="11" font-weight="bold">V9 Vacuity 门禁有效性</text>
+
+    <rect x="12" y="224" width="151" height="85" rx="6" fill="#121D16" stroke="#4E9F3D" stroke-width="1" />
+    <text x="20" y="244" fill="#A5D6A7" font-family="monospace" font-size="9" font-weight="bold">FINAL AUDIT STATUS:</text>
+    <text x="20" y="262" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="11">R_eff ≥ 0.90 达标</text>
+    <text x="20" y="280" fill="#8C95A0" font-family="monospace" font-size="10">Fail-Closed 故障即停</text>
+    <text x="20" y="296" fill="#A5D6A7" font-family="monospace" font-size="9">证据闭环入库</text>
+  </g>
+
+  <!-- Bottom Flow Legend -->
+  <g transform="translate(40, 475)">
+    <rect width="820" height="26" rx="4" fill="#13161B" />
+    <text x="15" y="17" fill="#6A737D" font-family="monospace" font-size="10">FLOW CONSTRAINT: 阶段间传递严禁基于隐式记忆，每一阶段输入输出必须在磁盘以 Markdown / JSON / Git Commit 固化</text>
+  </g>
+
+</svg>
