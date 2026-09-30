@@ -11,6 +11,24 @@
 
 ---
 
+## 🧭 先读这段：本仓库不是单一 npm 项目
+
+SSD Suite 是一个**方法论 + 资产套件仓库**，不是一个可直接 `npm install` 的应用：
+
+| 你想要什么 | 从这里开始 |
+|---|---|
+| 想直接跑一个生产级全栈应用 | → [`template/`](template/)（**唯一需要装依赖的目录**，内含完整 Next.js 15 应用） |
+| 想让 AI 在被约束的流水线里干活 | → [`skills/`](skills/)（4 套 Agent 控制面技能，复制到你的 AI 编程工具即可用） |
+| 想理解方法论与设计取舍 | → [`article/Harness-Engineering-实践.md`](article/Harness-Engineering-实践.md)（15 节万字实录，含机制落地率真相对账表） |
+| 想看九阶流水线规范 | → [`pipeline-spec/README.md`](pipeline-spec/README.md) |
+| 想看可视化流水线 | → [`harness-engineering/visual-pipelines/`](harness-engineering/visual-pipelines/)（6 个 HTML，双击浏览器直开，零依赖） |
+
+**前置要求**（仅运行 `template/` 时需要）：Node.js 20+、pnpm 10+（仓库锁定 `pnpm@10.33.2`）、Python 3.9+（仅运行品牌切图脚本时需要）。
+
+> 📖 **深度阅读**：[让 AI 的结论可被信任：一套四阶段流水线的 Harness Engineering 工程实践](article/Harness-Engineering-实践.md) —— 本文基于真实项目 **61 篇审计 / 444 条发现 / 11.23x 上下文压缩**的实战数据，并**如实公开了 58% 格式漂移与 0% 教训回流等落地失败**。
+
+---
+
 ## 📌 核心定位：为什么需要 SSD Suite？
 
 在当今的大模型与 AI 编程时代，开发者并不缺少能够“吐出代码”的 AI 助手。真正阻碍全栈应用从 Demo 走向商业级生产的，是以下三大核心痛点：
@@ -155,18 +173,24 @@ open-source-ssd/
 ## ⚡ 15 分钟极速上手：构建受控的全栈应用
 
 ### 步骤 1：启动全栈脚手架（3 分钟）
-```bash
-# 1. 克隆并进入全栈模板目录
-cd template
+> ⚠️ 以下所有命令都在 `template/` 目录内执行。仓库根目录**没有** `package.json`，
+> 只有 `template/` 是需要安装依赖的完整应用。请先确认已安装 Node.js 20+ 与 pnpm 10+。
 
-# 2. 复制环境配置模板并安装依赖
+```bash
+# 0. 克隆仓库并进入模板目录
+git clone https://github.com/ameureka101/open-source-ssd.git
+cd open-source-ssd/template
+
+# 1. 复制环境配置模板并安装依赖（仓库锁定 pnpm@10.33.2）
 cp env.example .env.local
 pnpm install
 
-# 3. 启动本地全栈开发环境
+# 2. 启动本地全栈开发环境
 pnpm dev
 ```
 在浏览器打开 `http://localhost:3000`，你将看到已经配置就绪的完整 SaaS 界面（支持暗黑模式与双语切换）。
+
+> 💡 首次运行无需配置任何真实密钥即可启动；接支付/数据库时才需要按 `env.example` 填写。
 
 ### 步骤 2：品牌视觉极速换血（5 分钟）
 1. 查阅 [brand-system/02-colors-oklch/](brand-system/02-colors-oklch/)，选取符合对比度的主色 OKLCH 值，填入 `template/src/styles/globals.css`。
@@ -177,14 +201,20 @@ pnpm dev
 3. 遵循 [brand-system/SDC-WORKFLOW.md](brand-system/SDC-WORKFLOW.md)，全局执行类名与品牌文字检索，消除旧品牌残留。
 
 ### 步骤 3：让 AI 在有护栏的 Harness 中开发（7 分钟）
-将 `skills/` 中的技能目录复制或挂载到你的 AI 编程助手工具链中：
+将 [`skills/`](skills/) 中的技能目录复制或挂载到你的 AI 编程助手工具链中
+（适用于 AI Code Assistant / Cursor / Windsurf 等支持 Skill 目录的工具）：
+
 1. **生成规格**：在对话中输入 `/requirements-matrix-generator 为用户设置页面生成需求规格`。
 2. **闭环实施**：在对话中输入 `/loop-prompt-generator 绑定任务卡实施`。
-3. **物理断言验证**：在本地运行全栈模板门禁：
+3. **物理断言验证**：在 `template/` 目录内运行门禁（等价于 `pnpm run gate:check`）：
    ```bash
    node scripts/check-gates.mjs
    ```
    终端必须输出 `ALL GATES PASSED: (4/4)`，凡是未满足的类型定义或破坏性改动将被门禁直接拦截，杜绝代码“带伤上线”！
+
+> 🧪 **验证门禁真的有效**：试着把某个守卫函数改成 `return true` 再跑一次。
+> 门禁应当报 `VACUITY_VIOLATION` 并**以非 0 退出码失败**——如果它依然绿灯，说明你的门禁正在空转。
+> 这正是 `V9 vacuity` 元门禁要防的事（详见 [§11](article/Harness-Engineering-实践.md)）。
 
 ---
 
@@ -232,6 +262,21 @@ curl -sS -I "https://{{YOUR_DOMAIN}}/?cb=$(date +%s)"
 # 验证未登录鉴权阻断 (预期返回 307 重定向到登录页)
 curl -sS -I "https://{{YOUR_DOMAIN}}/dashboard?cb=$(date +%s)"
 ```
+
+---
+
+## ⚠️ 诚实边界：这套东西哪里还没做好
+
+我们拒绝只展示光鲜的一面。**以下是当前已知的真实缺口**，详见文章 [§14](article/Harness-Engineering-实践.md)：
+
+| 缺口 | 现状 | 影响 |
+|---|---|---|
+| **跨平台格式漂移** | findings 摘要块落地率仅 **58%**（61/105 篇），且分裂成 YAML 与 HTML 注释两种格式 | 仅靠文字约定无法杜绝漂移，**必须配 pre-commit hook 或 CI linter** |
+| **教训回流未闭环** | 9 篇实战教训**全部进了 memory，0 条回流进 skill** | 规则约束力被静默降级；P0 复盘后需**手动**把教训写成 skill 规则 |
+| **对抗验证未落字段** | 112 篇文档提及对抗检查，但机器可判定的 verdict **仅 2 条** | 「做过对抗验证」多为文字自述，缺乏可检索证据 |
+| **静态契约 vs 生产漂移** | 文档记录的鉴权状态曾与线上实际响应码不一致 | 缺少生产 HTTP 巡检脚本，文档会与运行时脱节 |
+
+**如果你要落地这套流水线，请先补齐前两项**——它们是这套体系里最脆弱的部分。
 
 ---
 
